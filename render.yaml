@@ -1,0 +1,56 @@
+services:
+  - type: web
+    name: tracey-trials-api
+    runtime: node
+    rootDir: .
+    plan: starter
+    buildCommand: npm ci
+    startCommand: npm run start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: SEED_FIRST_NAMES
+        sync: false
+      - key: SEED_DEFAULT_PASSWORD
+        sync: false
+      - key: SEED_JUDGE_PASSWORD
+        sync: false
+      - key: SUBMISSION_EMAIL_TO
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: LONG_GAME_DATE_OVERRIDE
+        sync: false
+
+  - type: static
+    name: tracey-trials-web
+    rootDir: .
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    pullRequestPreviewsEnabled: false
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

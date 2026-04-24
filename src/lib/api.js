@@ -1,0 +1,177 @@
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
+
+async function request(path, options = {}) {
+  let response
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, options)
+  } catch {
+    throw new Error('Could not reach the server. Make sure the app is running and try again.')
+  }
+
+  const isJson = response.headers.get('content-type')?.includes('application/json')
+  const data = isJson ? await response.json() : null
+  const text = isJson ? '' : await response.text()
+
+  if (!response.ok) {
+    throw new Error(
+      data?.message ?? text?.trim() ?? `${response.status} ${response.statusText}`,
+    )
+  }
+
+  return data
+}
+
+export async function loginUser(credentials) {
+  return request('/api/auth/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(credentials),
+  })
+}
+
+export async function changePassword({
+  token,
+  newPassword,
+  confirmPassword,
+  contactEmail,
+}) {
+  return request('/api/auth/change-password', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      newPassword,
+      confirmPassword,
+      contactEmail,
+    }),
+  })
+}
+
+export async function fetchCurrentUser(token) {
+  return request('/api/auth/me', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export async function fetchSubmissions(token) {
+  return request('/api/submissions', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export async function createSubmission({ token, file, taskNumber, textBody, caption = '' }) {
+  const formData = new FormData()
+  formData.append('taskNumber', String(taskNumber))
+  formData.append('textBody', textBody)
+  formData.append('caption', caption)
+
+  if (file) {
+    formData.append('media', file)
+  }
+
+  return request('/api/submissions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  })
+}
+
+export async function fetchCompletedTasks(token) {
+  return request('/api/tasks', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export async function fetchTaskDetails(token, displayNumber) {
+  return request(`/api/tasks/display/${displayNumber}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export async function updateTaskCompletion(token, taskNumber, isCompleted) {
+  return request(`/api/tasks/${taskNumber}/completion`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ isCompleted }),
+  })
+}
+
+export async function updateCompletedTasks(token, completedTaskNumbers) {
+  return request('/api/tasks', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ completedTaskNumbers }),
+  })
+}
+
+export async function fetchLongGameStatus(token) {
+  return request('/api/tasks/long-game/status', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export async function saveLongGameChoice(token, choice) {
+  return request('/api/tasks/long-game/choice', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ choice }),
+  })
+}
+
+export async function fetchJudgeSubmissions(token) {
+  return request('/api/judge/submissions', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export async function fetchJudgeTasks(token) {
+  return request('/api/judge/tasks', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export async function fetchJudgeLongGameRounds(token) {
+  return request('/api/judge/long-game/rounds', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export async function fetchJudgeLeaderboard(token) {
+  return request('/api/judge/leaderboard', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}

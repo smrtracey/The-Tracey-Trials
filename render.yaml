@@ -41,7 +41,7 @@ services:
       - key: LONG_GAME_DATE_OVERRIDE
         sync: false
 
-  - type: static
+  - type: static_site
     name: tracey-trials-web
     rootDir: .
     buildCommand: npm ci && npm run build

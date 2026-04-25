@@ -17,9 +17,9 @@ const tasks = [
   },
   {
     taskNumber: 2,
-    title: 'Hoop! There it is',
-    goal: 'Improve the most at hoola hooping',
-    description: "Work on those hoola hooping skills. You'll be timed again at the finale.",
+    title: 'Rope Jam Showdown',
+    goal: 'Improve your skipping the most',
+    description: "You'll have 30 seconds on Finale day to improve on your day 1 score",
     players: ALL,
   },
   {
@@ -123,7 +123,7 @@ const tasks = [
     title: 'Love is in the Air',
     goal: 'Take this beach ball on the most romantic date.',
     description:
-      "Everybody except Danny gets a beach ball; Danny gets a sex doll with the same task. If Danny finds out he's the only one with a sex doll, he gets 5 points and everyone else gets none for this task.",
+      "This one is a little bit different so that I get to play a little prank on our Danny Boy. Everyone except for Dan gets a beach ball. Dan however gets a sex doll with the same task. If at any point during the competition Dan finds out that he's the only one with a sex doll, he'll get 5 points and everyone else gets 0. Should it come up in conversation, Dan should think everyone has a sex doll.",
     players: ['tau', 'marika', 'maria', 'adriana', 'will', 'cathal', 'pierce', 'katy'],
   },
   {
@@ -206,6 +206,13 @@ const tasks = [
     description:
       'You have 3 months to submit a home recipe in writing and an instructional video. Taskmaster will cook and rank submissions.',
     players: ALL,
+  },
+  {
+    taskNumber: 25,
+    title: 'Love is in the Air',
+    goal: 'Bring your sex doll on the most romantic date',
+    description: 'I want to feel the love',
+    players: ['danny'],
   },
 ]
 

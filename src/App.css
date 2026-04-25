@@ -23,6 +23,22 @@
   padding: 24px 16px 40px;
 }
 
+.app-shell > *,
+.home-layout,
+.panel-grid,
+.task-details-layout,
+.judge-dashboard-layout,
+.judge-dashboard-grid,
+.panel-header > *,
+.hero-meta > *,
+.hero-meta .meta-group,
+.task-check-item,
+.judge-dashboard-card,
+.judge-side-panel,
+.judge-side-panel-section {
+  min-width: 0;
+}
+
 .app-shell--centered {
   display: flex;
   align-items: center;
@@ -363,6 +379,7 @@
   top: 44px;
   right: 0;
   min-width: 140px;
+  max-width: min(240px, calc(100% + 120px));
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
@@ -447,11 +464,13 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  max-width: 100%;
   background: var(--surface-strong);
   color: var(--text-h);
   border-radius: 999px;
   padding: 10px 14px;
   font-size: 0.9rem;
+  overflow-wrap: anywhere;
 }
 
 .stats-grid {
@@ -586,6 +605,8 @@
 
 .task-check-text {
   display: -webkit-box;
+  flex: 1 1 auto;
+  min-width: 0;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -593,6 +614,7 @@
 }
 
 .task-check-link {
+  min-width: 0;
   color: inherit;
   text-decoration: none;
 }
@@ -657,6 +679,10 @@
   flex-wrap: wrap;
 }
 
+.task-details-header > * {
+  min-width: 0;
+}
+
 .task-completion-button {
   margin-left: auto;
 }
@@ -701,6 +727,8 @@
 
 .long-game-header-row h2 {
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .long-game-content {
@@ -794,6 +822,8 @@
 
 .judge-section-header h2 {
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .judge-collapse-toggle {
@@ -808,12 +838,18 @@
 .judge-filter-bar {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: 1fr;
   align-items: end;
   height: 172px;
   min-height: 172px;
   max-height: 172px;
   overflow: hidden;
+}
+
+@media (min-width: 480px) {
+  .judge-filter-bar {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  }
 }
 
 .judge-toggle {

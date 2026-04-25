@@ -9,127 +9,6 @@ import {
   saveLongGameChoice,
   updateTaskCompletion,
 } from '../lib/api'
-import { getStoredLanguage } from '../lib/language'
-
-const portugueseTaskTextByNumber = {
-  1: {
-    goal: 'Trabalhar em conjunto para descobrir a senha.',
-    description:
-      'Todos receberam pistas privadas. Voces vao precisar trabalhar em conjunto para descobrir a senha. No entanto, pontos serao dados apenas aos 3 primeiros jogadores que inserirem a senha corretamente.',
-  },
-  2: {
-    goal: 'Melhorar o maximo possivel no bambole.',
-    description: 'Treinem as habilidades de bambole. O tempo sera medido novamente na final.',
-  },
-  3: {
-    goal: 'Ser a primeira pessoa a tirar uma selfie com uma celebridade.',
-    description:
-      'A celebridade nao pode ser apenas alguem ao fundo, como em um palco ou algo assim. Tambem precisa ser alguem que o taskmaster conheca. Pontos bonus para mencoes do taskmaster.',
-  },
-  4: {
-    goal: 'Iniciar o maior coro em grupo.',
-    description:
-      'Precisa incluir pelo menos 10 pessoas. O taskmaster vai considerar o local do coro. Cantar em um show e facil. Cantar em um funeral e bem mais dificil...',
-  },
-  5: {
-    goal: 'Conseguir o melhor video de outro jogador rindo.',
-    description:
-      'Isso vai para votacao em grupo. Quero ver pessoas rindo tanto que cheguem a chorar!',
-  },
-  6: {
-    goal: 'Fazer o maior numero de novos amigos.',
-    description:
-      'Um amigo e alguem com quem voce saiu depois do primeiro encontro. Para esta tarefa, voce precisa enviar uma foto/video de quando se conheceram e outra foto com a mesma pessoa em uma data posterior. Nao sao permitidas fotos em grupo. Inclua os nomes dos novos amigos.',
-  },
-  7: {
-    goal: 'Completar o maior numero de tarefas.',
-    description: 'Os 3 jogadores com mais tarefas concluidas ganham pontos aqui.',
-  },
-  8: {
-    goal: 'Fazer o melhor karaoke.',
-    description:
-      'Nao ha pontos por talento vocal. A avaliacao sera por escolha da musica, figurino e presenca de palco. Voce pode fazer em dupla com outros jogadores.',
-  },
-  9: {
-    goal: 'Dar ao taskmaster o melhor chapeu.',
-    description:
-      'Eu gosto de chapeus. Vou escolher o meu favorito. Voce tem 20 euros para gastar no chapeu da sua escolha.',
-  },
-  10: {
-    goal: 'Tirar a melhor foto do nascer e do por do sol no mesmo dia.',
-    description:
-      'Voce precisa enviar 2 fotos com data/hora ou um timelapse do nascer ao por do sol. Espero que ninguem roube sua GoPro durante o timelapse...',
-  },
-  11: {
-    goal: 'Manter um Tamagotchi vivo pelo maior tempo.',
-    description:
-      'Voce so tem UMA submissao. Se acha que ele vai morrer amanha, envie hoje. O Tamagotchi que viver mais vence.',
-  },
-  12: {
-    goal: 'Criar o melhor documentario de um unico dia.',
-    description:
-      'Pode ser em qualquer estilo e em qualquer dia. Entrevistas, narracao, POV, o que quiser. As submissões precisam ser em video.',
-  },
-  13: {
-    goal: 'Conseguir os melhores videos dignos de GoPro nos proximos 6 meses.',
-    description:
-      'Consiga as melhores cenas de acao. Pode ser qualquer coisa, ate momentos do dia a dia. Se eu vir um video incrivel fazendo cha melhor que um mergulho em alto mar, ele ganha pontos. Variedade importa. Adri e Marika so podem enviar um video irado de bike/escalada cada. Mas enviem bastante por diversao.',
-  },
-  14: {
-    goal: 'Roubar o melhor copo.',
-    description:
-      'Eu gosto de copos. So pode roubar de pub, nao de casas. Vou decidir qual e meu favorito. E necessario enviar foto/video do copo e apresentar o copo ate a final.',
-  },
-  15: {
-    goal: 'Levar esta bola de praia para o encontro mais romantico.',
-    description:
-      'Todos, exceto Danny, recebem uma bola de praia; Danny recebe uma boneca sexual com a mesma tarefa. Se Danny descobrir que e o unico com a boneca, ganha 5 pontos e todos os outros recebem zero nesta tarefa.',
-  },
-  16: {
-    goal: 'Criar a melhor tarefa.',
-    description:
-      'Voce tem 3 meses para enviar sua tarefa. Nos 3 meses seguintes, outros jogadores vao tentar completar as tarefas criadas por voce. Voce ganha pontos pelo quanto eu gostar da tarefa e bonus se as pessoas a completarem.',
-  },
-  17: {
-    goal: 'Conseguir a melhor colecao de fotos espontaneas dos outros jogadores.',
-    description:
-      'Podem ser tiradas a qualquer momento e de qualquer pessoa, mas devem ser feitas sem que os outros jogadores percebam. Esta tarefa tem limite de 20 fotos por jogador.',
-  },
-  18: {
-    goal: 'Conseguir mais fotos espontaneas com outros jogadores.',
-    description:
-      'Variante especifica para Katy: conseguir fotos com 3 outros jogadores sem que eles percebam que voce esta la. Suporte de voo e verba para disfarce podem ser combinados com Mikaela.',
-  },
-  19: {
-    goal: 'Como equipe, enviar 20 perguntas para um quiz de mesa.',
-    description:
-      'O quiz sera jogado presencialmente na final. Se ninguem das outras equipes souber responder a pergunta da sua equipe, sua equipe perde um ponto.',
-  },
-  20: {
-    goal: 'Ao longo da competicao, ganhar mais pontos em duelos contra outros jogadores.',
-    description:
-      'Desafio recorrente baseado em decisao. A cada algumas semanas, jogadores sao pareados e escolhem cooperar ou trair.',
-  },
-  21: {
-    goal: 'Criar uma maquina de Rube Goldberg para quebrar um ovo.',
-    description:
-      'Feito em equipes de 3 com restricoes de funcao. A primeira submissao define a ordem das restricoes.',
-  },
-  22: {
-    goal: 'Completar a tarefa enviada pelo outro jogador.',
-    description: 'Detalhes em breve.',
-  },
-  23: {
-    goal: 'Escolher o jogador certo para as tarefas.',
-    description:
-      'Atribua tarefas de criacao aos jogadores com maior chance de completa-las. Voce pode mudar UMA palavra em UMA tarefa; ha bonus por melhorá-la.',
-  },
-  24: {
-    goal: 'Criar a melhor receita caseira e video instrucional.',
-    description:
-      'Voce tem 3 meses para enviar uma receita caseira por escrito e um video instrucional. O taskmaster vai cozinhar e classificar as submissões.',
-  },
-}
 
 function toTitleCase(value) {
   return value
@@ -162,7 +41,6 @@ function formatLongGameCountdown(endDate, nowTimestamp) {
 function TaskDetailsPage() {
   const { token, user } = useAuth()
   const { taskNumber: taskDisplayNumber } = useParams()
-  const language = useMemo(() => getStoredLanguage(), [])
   const [task, setTask] = useState(null)
   const [error, setError] = useState('')
   const [completionError, setCompletionError] = useState('')
@@ -257,21 +135,10 @@ function TaskDetailsPage() {
     return toTitleCase(task.title)
   }, [task])
 
-  const localizedTaskText = useMemo(() => {
-    if (!task || language !== 'pt') {
-      return {
-        goal: task?.goal ?? '',
-        description: task?.description ?? '',
-      }
-    }
-
-    const localized = portugueseTaskTextByNumber[task.taskNumber]
-
-    return {
-      goal: localized?.goal ?? task.goal,
-      description: localized?.description ?? task.description,
-    }
-  }, [language, task])
+  const localizedTaskText = useMemo(() => ({
+    goal: task?.goal ?? '',
+    description: task?.description ?? '',
+  }), [task])
 
   async function handleToggleCompletion() {
     if (!task) {
@@ -303,7 +170,7 @@ function TaskDetailsPage() {
 
     try {
       await createSubmission({ token, ...payload })
-      setSubmitSuccess(language === 'pt' ? 'Tarefa enviada com sucesso.' : 'Task submitted successfully.')
+      setSubmitSuccess('Task submitted successfully.')
     } catch (taskSubmitError) {
       setSubmitError(taskSubmitError.message)
     } finally {
@@ -348,40 +215,34 @@ function TaskDetailsPage() {
   }
 
   const copy = {
-    back: language === 'pt' ? 'Voltar para início' : 'Back to home',
-    loading: language === 'pt' ? 'Carregando detalhes da tarefa…' : 'Loading task details…',
-    completed: language === 'pt' ? 'Concluída' : 'Completed',
-    notCompleted: language === 'pt' ? 'Não concluída' : 'Not completed',
-    markCompleted: language === 'pt' ? 'Marcar como concluída' : 'Mark as completed',
-    markNotCompleted: language === 'pt' ? 'Marcar como não concluída' : 'Mark as not completed',
-    goal: language === 'pt' ? 'Objetivo' : 'Goal',
-    description: language === 'pt' ? 'Descrição' : 'Description',
-    deadline: language === 'pt' ? 'Prazo' : 'Deadline',
-    longGameTitle: language === 'pt' ? 'Duelo desta rodada' : 'This round duel',
-    longGameRoundLabel: language === 'pt' ? 'Rodada' : 'Round',
-    longGameCountdownLabel: language === 'pt' ? 'Tempo restante' : 'Time remaining',
-    longGameOpponentLabel: language === 'pt' ? 'Adversário' : 'Opponent',
-    longGameStatusActive: language === 'pt' ? 'Ativa agora' : 'Active now',
-    longGameStatusUpcoming: language === 'pt' ? 'Próxima rodada' : 'Upcoming round',
-    longGameStatusCompleted: language === 'pt' ? 'Rodada encerrada' : 'Round closed',
-    longGameBye: language === 'pt' ? 'Você está de folga nesta rodada.' : 'You have a bye in this round.',
-    longGameMissingOpponent:
-      language === 'pt'
-        ? 'Não foi possível encontrar seu adversário para esta rodada.'
-        : 'Your opponent could not be resolved for this round.',
-    cooperate: language === 'pt' ? 'Cooperar' : 'Cooperate',
-    betray: language === 'pt' ? 'Trair' : 'Betray',
-    longGameYourChoice: language === 'pt' ? 'Sua escolha' : 'Your choice',
-    longGameChoosePrompt:
-      language === 'pt' ? 'Faça sua escolha' : 'Make your choice',
-    longGameConfirmTitle: language === 'pt' ? 'Confirmar escolha' : 'Confirm choice',
-    longGameConfirmBody:
-      language === 'pt' ? 'Deseja confirmar sua escolha?' : 'Do you want to confirm your choice?',
-    confirm: language === 'pt' ? 'Confirmar' : 'Confirm',
-    cancel: language === 'pt' ? 'Cancelar' : 'Cancel',
-    submitTitle: language === 'pt' ? 'Enviar para esta tarefa' : 'Submit for this task',
-    submitHint:
-      language === 'pt' ? 'Envie mídia, escreva texto, ou inclua ambos.' : 'Upload media, write text, or include both.',
+    back: 'Back to home',
+    loading: 'Loading task details…',
+    completed: 'Completed',
+    notCompleted: 'Not completed',
+    markCompleted: 'Mark as completed',
+    markNotCompleted: 'Mark as not completed',
+    goal: 'Goal',
+    description: 'Description',
+    deadline: 'Deadline',
+    longGameTitle: 'This round duel',
+    longGameRoundLabel: 'Round',
+    longGameCountdownLabel: 'Time remaining',
+    longGameOpponentLabel: 'Opponent',
+    longGameStatusActive: 'Active now',
+    longGameStatusUpcoming: 'Upcoming round',
+    longGameStatusCompleted: 'Round closed',
+    longGameBye: 'You have a bye in this round.',
+    longGameMissingOpponent: 'Your opponent could not be resolved for this round.',
+    cooperate: 'Cooperate',
+    betray: 'Betray',
+    longGameYourChoice: 'Your choice',
+    longGameChoosePrompt: 'Make your choice',
+    longGameConfirmTitle: 'Confirm choice',
+    longGameConfirmBody: 'Do you want to confirm your choice?',
+    confirm: 'Confirm',
+    cancel: 'Cancel',
+    submitTitle: 'Submit for this task',
+    submitHint: 'Upload media, write text, or include both.',
   }
 
   const shouldShowLongGameCard = Boolean(
@@ -521,7 +382,6 @@ function TaskDetailsPage() {
                   isSubmitting={isSubmitting}
                   onSubmit={handleCreateSubmission}
                   fixedTaskNumber={task.taskNumber}
-                  language={language}
                 />
               </section>
             </>

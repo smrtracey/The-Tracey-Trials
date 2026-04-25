@@ -9,7 +9,6 @@ import {
   saveLongGameChoice,
   updateCompletedTasks,
 } from '../lib/api'
-import { getStoredLanguage, setStoredLanguage } from '../lib/language'
 
 function getNewYearsEveTimestamp(referenceDate) {
   const year = referenceDate.getFullYear()
@@ -84,7 +83,6 @@ function formatLongGameCountdown(endDate, nowTimestamp) {
 
 function HomePage() {
   const { token, user, signOut } = useAuth()
-  const [language, setLanguage] = useState(() => getStoredLanguage())
   const [now, setNow] = useState(() => Date.now())
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [activeIconInfo, setActiveIconInfo] = useState('')
@@ -116,10 +114,6 @@ function HomePage() {
   const [isInstallPromptDismissed, setIsInstallPromptDismissed] = useState(
     () => localStorage.getItem(installDismissKey) === 'true',
   )
-
-  useEffect(() => {
-    setStoredLanguage(language)
-  }, [language])
 
   useEffect(() => {
     if (isFirstVisit) {
@@ -269,7 +263,7 @@ function HomePage() {
 
     try {
       await createSubmission({ token, ...payload })
-      setSuccessMessage(language === 'pt' ? 'Tarefa enviada com sucesso.' : 'Task submitted successfully.')
+      setSuccessMessage('Task submitted successfully.')
     } catch (submitError) {
       setError(submitError.message)
     } finally {
@@ -424,11 +418,6 @@ function HomePage() {
     signOut()
   }
 
-  function handleChangeLanguage(nextLanguage) {
-    setLanguage(nextLanguage)
-    setIsMobileMenuOpen(false)
-  }
-
   function handleScrollToSubmit() {
     window.scrollTo({
       top: document.documentElement.scrollHeight,
@@ -437,81 +426,53 @@ function HomePage() {
   }
 
   const copy = {
-    welcome: language === 'pt' ? 'Bem-vindo' : 'Welcome',
-    welcomeBack: language === 'pt' ? 'Bem-vindo de volta' : 'Welcome back',
-    heroSubtitle:
-      language === 'pt'
-        ? 'Acompanhe seu progresso e fique de olho na contagem regressiva.'
-        : 'Track your progress and keep an eye on the countdown.',
-    tasksCompleted:
-      language === 'pt'
-        ? `${completedTaskNumbers.length} tarefas concluídas`
-        : `${completedTaskNumbers.length} tasks completed`,
-    submit: language === 'pt' ? 'Enviar' : 'Submit',
-    completedTasks: language === 'pt' ? 'Tarefas concluídas' : 'Completed tasks',
-    completedTasksHint:
-      language === 'pt' ? 'Marque as tarefas que você já concluiu.' : 'Tick off the tasks you’ve completed.',
-    collapse: language === 'pt' ? 'Recolher tarefas concluídas' : 'Collapse completed tasks',
-    expand: language === 'pt' ? 'Expandir tarefas concluídas' : 'Expand completed tasks',
-    loadingTasks: language === 'pt' ? 'Carregando lista de tarefas…' : 'Loading task checklist…',
-    noTasks: language === 'pt' ? 'Nenhuma tarefa atribuída no momento.' : 'No tasks are currently assigned.',
-    longGameLoading: language === 'pt' ? 'Carregando duelo...' : 'Loading duel...',
-    duePrefix: language === 'pt' ? 'Prazo' : 'Due',
-    submitSectionTitle: language === 'pt' ? 'Enviar nova tarefa' : 'Submit a new task',
-    submitSectionHint:
-      language === 'pt'
-        ? 'Você pode enviar fotos, vídeos ou respostas em texto para suas tarefas.'
-        : 'You can add photos, videos, or text responses for your tasks.',
-    languageLabel: language === 'pt' ? 'Idioma' : 'Language',
-    english: 'English',
-    portuguese: 'Português',
-    signOut: language === 'pt' ? 'Sair' : 'Sign out',
-    openMenu: language === 'pt' ? 'Abrir menu da conta' : 'Open account menu',
-    mandatoryLabel: language === 'pt' ? 'Tarefa obrigatoria' : 'Mandatory task',
-    mandatoryInfoTitle: language === 'pt' ? 'Tarefa obrigatoria' : 'Mandatory task',
-    mandatoryInfoBody:
-      language === 'pt'
-        ? 'O icone ! indica que esta tarefa e obrigatoria e deve ser concluida.'
-        : 'The ! icon means this is a mandatory task and must be completed.',
-    raceLabel: language === 'pt' ? 'Tarefa de corrida' : 'Race task',
-    raceInfoTitle: language === 'pt' ? 'Tarefa de corrida' : 'Race task',
-    raceInfoBody:
-      language === 'pt'
-        ? 'O icone de bandeira quadriculada indica uma tarefa de corrida.'
-        : 'The checkered flag icon marks this as a race task.',
-    specialLabel: language === 'pt' ? 'Tarefa especial' : 'Special task',
-    specialInfoTitle: language === 'pt' ? 'Tarefa especial' : 'Special task',
-    specialInfoBody:
-      language === 'pt' ? 'O icone de estrela indica uma tarefa especial.' : 'The star icon marks this as a special task.',
-    timedLabel: language === 'pt' ? 'Tarefa com tempo' : 'Timed task',
-    timedInfoTitle: language === 'pt' ? 'Tarefa com tempo' : 'Timed task',
-    timedInfoBody:
-      language === 'pt'
-        ? 'O icone de relogio indica que esta tarefa tem limite de tempo.'
-        : 'The clock icon marks this as a timed task.',
+    welcome: 'Welcome',
+    welcomeBack: 'Welcome back',
+    heroSubtitle: 'Track your progress and keep an eye on the countdown.',
+    tasksCompleted: `${completedTaskNumbers.length} tasks completed`,
+    submit: 'Submit',
+    completedTasks: 'Completed tasks',
+    completedTasksHint: 'Tick off the tasks you’ve completed.',
+    collapse: 'Collapse completed tasks',
+    expand: 'Expand completed tasks',
+    loadingTasks: 'Loading task checklist…',
+    noTasks: 'No tasks are currently assigned.',
+    longGameLoading: 'Loading duel...',
+    duePrefix: 'Due',
+    submitSectionTitle: 'Submit a new task',
+    submitSectionHint: 'You can add photos, videos, or text responses for your tasks.',
+    signOut: 'Sign out',
+    openMenu: 'Open account menu',
+    mandatoryLabel: 'Mandatory task',
+    mandatoryInfoTitle: 'Mandatory task',
+    mandatoryInfoBody: 'The ! icon means this is a mandatory task and must be completed.',
+    raceLabel: 'Race task',
+    raceInfoTitle: 'Race task',
+    raceInfoBody: 'The checkered flag icon marks this as a race task.',
+    specialLabel: 'Special task',
+    specialInfoTitle: 'Special task',
+    specialInfoBody: 'The star icon marks this as a special task.',
+    timedLabel: 'Timed task',
+    timedInfoTitle: 'Timed task',
+    timedInfoBody: 'The clock icon marks this as a timed task.',
     longGameTitle: 'The Long Game',
-    longGameRoundLabel: language === 'pt' ? 'Rodada' : 'Round',
-    longGameCountdownLabel: language === 'pt' ? 'Tempo restante' : 'Time remaining',
-    longGameOpponentLabel: language === 'pt' ? 'Adversário' : 'Opponent',
-    longGameStatusActive: language === 'pt' ? 'Ativa agora' : 'Active now',
-    longGameStatusUpcoming: language === 'pt' ? 'Próxima rodada' : 'Upcoming round',
-    longGameStatusCompleted: language === 'pt' ? 'Rodada encerrada' : 'Round closed',
-    longGameBye: language === 'pt' ? 'Você está de folga nesta rodada.' : 'You have a bye in this round.',
-    longGameMissingOpponent:
-      language === 'pt'
-        ? 'Não foi possível encontrar seu adversário para esta rodada.'
-        : 'Your opponent could not be resolved for this round.',
-    cooperate: language === 'pt' ? 'Cooperar' : 'Cooperate',
-    betray: language === 'pt' ? 'Trair' : 'Betray',
-    longGameYourChoice: language === 'pt' ? 'Sua escolha' : 'Your choice',
-    longGameChoosePrompt:
-      language === 'pt' ? 'Faça sua escolha' : 'Make your choice',
-    longGameConfirmTitle: language === 'pt' ? 'Confirmar escolha' : 'Confirm choice',
-    longGameConfirmBody:
-      language === 'pt' ? 'Deseja confirmar sua escolha?' : 'Do you want to confirm your choice?',
-    confirm: language === 'pt' ? 'Confirmar' : 'Confirm',
-    cancel: language === 'pt' ? 'Cancelar' : 'Cancel',
-    close: language === 'pt' ? 'Fechar' : 'Close',
+    longGameRoundLabel: 'Round',
+    longGameCountdownLabel: 'Time remaining',
+    longGameOpponentLabel: 'Opponent',
+    longGameStatusActive: 'Active now',
+    longGameStatusUpcoming: 'Upcoming round',
+    longGameStatusCompleted: 'Round closed',
+    longGameBye: 'You have a bye in this round.',
+    longGameMissingOpponent: 'Your opponent could not be resolved for this round.',
+    cooperate: 'Cooperate',
+    betray: 'Betray',
+    longGameYourChoice: 'Your choice',
+    longGameChoosePrompt: 'Make your choice',
+    longGameConfirmTitle: 'Confirm choice',
+    longGameConfirmBody: 'Do you want to confirm your choice?',
+    confirm: 'Confirm',
+    cancel: 'Cancel',
+    close: 'Close',
   }
 
   const iconInfoCopyByKey = {
@@ -562,21 +523,6 @@ function HomePage() {
             </button>
             {isMobileMenuOpen ? (
               <div className="mobile-menu-dropdown">
-                <div className="mobile-menu-label">{copy.languageLabel}</div>
-                <button
-                  className={`mobile-menu-item${language === 'en' ? ' mobile-menu-item--active' : ''}`}
-                  type="button"
-                  onClick={() => handleChangeLanguage('en')}
-                >
-                  {copy.english}
-                </button>
-                <button
-                  className={`mobile-menu-item${language === 'pt' ? ' mobile-menu-item--active' : ''}`}
-                  type="button"
-                  onClick={() => handleChangeLanguage('pt')}
-                >
-                  {copy.portuguese}
-                </button>
                 <button className="mobile-menu-item" type="button" onClick={handleSignOut}>
                   {copy.signOut}
                 </button>
@@ -602,54 +548,30 @@ function HomePage() {
 
         {shouldShowInstallCard ? (
           <section className="panel pwa-install-card" aria-label="Install app prompt">
-            <h2>{language === 'pt' ? 'Instalar aplicativo' : 'Install the app'}</h2>
+            <h2>Install the app</h2>
 
             {deferredInstallPrompt ? (
               <p className="muted">
-                {language === 'pt'
-                  ? 'Instale o Tracey Trials para abrir mais rápido e usar como app no seu dispositivo.'
-                  : 'Install Tracey Trials for faster access and an app-like experience on your device.'}
+                Install Tracey Trials for faster access and an app-like experience on your device.
               </p>
             ) : isIosSafari ? (
               <div className="stack pwa-install-ios-wrap">
-                <p className="muted">
-                  {language === 'pt'
-                    ? 'No iPhone/iPad, adicione pelo Safari para usar como app.'
-                    : 'On iPhone/iPad, add it from Safari to use it like an app.'}
-                </p>
+                <p className="muted">On iPhone/iPad, add it from Safari to use it like an app.</p>
                 <ol className="pwa-install-steps">
-                  <li>{language === 'pt' ? 'Abra este site no Safari.' : 'Open this site in Safari.'}</li>
-                  <li>{language === 'pt' ? 'Toque em Compartilhar.' : 'Tap Share.'}</li>
-                  <li>
-                    {language === 'pt'
-                      ? 'Escolha Adicionar a Tela de Início.'
-                      : 'Choose Add to Home Screen.'}
-                  </li>
+                  <li>Open this site in Safari.</li>
+                  <li>Tap Share.</li>
+                  <li>Choose Add to Home Screen.</li>
                 </ol>
               </div>
             ) : (
               <div className="stack pwa-install-ios-wrap">
                 <p className="muted">
-                  {language === 'pt'
-                    ? 'Seu navegador ainda não liberou o botão de instalação direta. Você pode instalar pelo menu do navegador agora.'
-                    : 'Your browser has not exposed the one-tap install button yet. You can install now from the browser menu.'}
+                  Your browser has not exposed the one-tap install button yet. You can install now from the browser menu.
                 </p>
                 <ol className="pwa-install-steps">
-                  <li>
-                    {language === 'pt'
-                      ? 'Abra o menu do navegador (geralmente os 3 pontos).'
-                      : 'Open the browser menu (usually the 3 dots).'}
-                  </li>
-                  <li>
-                    {language === 'pt'
-                      ? 'Escolha Instalar aplicativo ou Adicionar à tela inicial.'
-                      : 'Choose Install app or Add to Home Screen.'}
-                  </li>
-                  <li>
-                    {language === 'pt'
-                      ? 'Confirme para concluir a instalação.'
-                      : 'Confirm to finish installation.'}
-                  </li>
+                  <li>Open the browser menu (usually the 3 dots).</li>
+                  <li>Choose Install app or Add to Home Screen.</li>
+                  <li>Confirm to finish installation.</li>
                 </ol>
               </div>
             )}
@@ -662,11 +584,11 @@ function HomePage() {
                   onClick={handleInstallApp}
                   disabled={isInstallingApp}
                 >
-                  {language === 'pt' ? 'Instalar agora' : 'Install now'}
+                  Install now
                 </button>
               ) : null}
               <button className="button-ghost" type="button" onClick={handleDismissInstallPrompt}>
-                {language === 'pt' ? 'Agora não' : 'Not now'}
+                Not now
               </button>
             </div>
           </section>
@@ -845,7 +767,6 @@ function HomePage() {
               <SubmissionForm
                 isSubmitting={isSubmitting}
                 onSubmit={handleCreateSubmission}
-                language={language}
                 availableTasks={tasks}
               />
             </article>

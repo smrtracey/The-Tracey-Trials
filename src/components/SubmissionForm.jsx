@@ -11,7 +11,6 @@ function SubmissionForm({
   isSubmitting,
   onSubmit,
   fixedTaskNumber = null,
-  language = 'en',
   availableTasks = [],
 }) {
   const hasFixedTaskNumber = Number.isInteger(fixedTaskNumber) && fixedTaskNumber > 0
@@ -23,29 +22,19 @@ function SubmissionForm({
 
   const fileName = useMemo(() => file?.name ?? 'No file selected', [file])
   const copy = {
-    fileEmpty: language === 'pt' ? 'Nenhum arquivo selecionado' : 'No file selected',
-    chooseFile: language === 'pt' ? 'Escolher arquivo' : 'Choose file',
-    taskNumber: language === 'pt' ? 'Número da tarefa' : 'Task number',
-    taskPlaceholder: language === 'pt' ? 'Escolha uma tarefa' : 'Choose a task',
-    mediaLabel: language === 'pt' ? 'Foto ou vídeo (opcional)' : 'Photo or video (optional)',
-    mediaHint:
-      language === 'pt'
-        ? 'Anexe uma foto/vídeo, um texto, ou ambos.'
-        : 'Attach a photo/video, a text body, or both.',
-    textLabel: language === 'pt' ? 'Texto (opcional)' : 'Body of text (optional)',
-    textPlaceholder:
-      language === 'pt' ? 'Escreva sua resposta da tarefa aqui' : 'Write your task response here',
-    previewAlt: language === 'pt' ? 'Pré-visualização selecionada' : 'Selected preview',
-    footerHint:
-      language === 'pt'
-        ? 'Adicione mídia, texto, ou ambos antes de enviar.'
-        : 'Add either media, text, or both before submitting.',
-    footerHintWithTask:
-      language === 'pt'
-        ? 'O número da tarefa é obrigatório. Adicione mídia, texto, ou ambos antes de enviar.'
-        : 'Task number is required. Add either media, text, or both before submitting.',
-    submitting: language === 'pt' ? 'Enviando…' : 'Submitting…',
-    submit: language === 'pt' ? 'Enviar tarefa' : 'Submit task',
+    fileEmpty: 'No file selected',
+    chooseFile: 'Choose file',
+    taskNumber: 'Task number',
+    taskPlaceholder: 'Choose a task',
+    mediaLabel: 'Photo or video (optional)',
+    mediaHint: 'Attach a photo/video, a text body, or both.',
+    textLabel: 'Body of text (optional)',
+    textPlaceholder: 'Write your task response here',
+    previewAlt: 'Selected preview',
+    footerHint: 'Add either media, text, or both before submitting.',
+    footerHintWithTask: 'Task number is required. Add either media, text, or both before submitting.',
+    submitting: 'Submitting\u2026',
+    submit: 'Submit task',
   }
 
   useEffect(() => {

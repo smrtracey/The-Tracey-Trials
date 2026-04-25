@@ -97,10 +97,6 @@
   box-sizing: border-box;
   border: 1px solid var(--border-strong);
   border-radius: 16px;
-    .panel-grid {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
-      align-items: start;
-    }
   padding: 14px 16px;
   background: var(--input-bg);
   color: var(--text-h);
@@ -420,6 +416,31 @@
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.pwa-install-card {
+  padding: 18px;
+  text-align: left;
+  display: grid;
+  gap: 12px;
+}
+
+.pwa-install-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pwa-install-ios-wrap {
+  gap: 8px;
+}
+
+.pwa-install-steps {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-soft);
+  display: grid;
+  gap: 4px;
 }
 
 .pill {
@@ -969,11 +990,13 @@
     align-items: start;
   }
 
-  .task-checklist-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .judge-dashboard-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 760px) {
+  .task-checklist-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

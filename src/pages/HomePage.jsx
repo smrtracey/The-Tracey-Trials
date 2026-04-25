@@ -101,13 +101,21 @@ function HomePage() {
   const [isLongGameLoading, setIsLongGameLoading] = useState(false)
   const [isSavingLongGameChoice, setIsSavingLongGameChoice] = useState(false)
   const [pendingLongGameChoice, setPendingLongGameChoice] = useState('')
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null)
+  const [isInstallingApp, setIsInstallingApp] = useState(false)
+  const [isIosSafari, setIsIosSafari] = useState(false)
+  const [isAppInstalled, setIsAppInstalled] = useState(false)
   const [isTaskCardExpanded, setIsTaskCardExpanded] = useState(() => {
     const key = `tracey-trials-task-card-expanded-${user.id}`
     return localStorage.getItem(key) !== 'false'
   })
 
   const visitKey = useMemo(() => `tracey-trials-home-visited-${user.id}`, [user.id])
+  const installDismissKey = useMemo(() => `tracey-trials-install-dismissed-${user.id}`, [user.id])
   const isFirstVisit = useMemo(() => localStorage.getItem(visitKey) !== 'true', [visitKey])
+  const [isInstallPromptDismissed, setIsInstallPromptDismissed] = useState(
+    () => localStorage.getItem(installDismissKey) === 'true',
+  )
 
   useEffect(() => {
     setStoredLanguage(language)
@@ -123,6 +131,50 @@ function HomePage() {
     const key = `tracey-trials-task-card-expanded-${user.id}`
     localStorage.setItem(key, String(isTaskCardExpanded))
   }, [isTaskCardExpanded, user.id])
+
+  useEffect(() => {
+    setIsInstallPromptDismissed(localStorage.getItem(installDismissKey) === 'true')
+  }, [installDismissKey])
+
+  useEffect(() => {
+    function checkInstalledMode() {
+      if (typeof window === 'undefined') {
+        return false
+      }
+
+      return (
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true
+      )
+    }
+
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent.toLowerCase() : ''
+    const isIos = /iphone|ipad|ipod/.test(userAgent)
+    const isSafari = /safari/.test(userAgent) && !/crios|fxios|edgios|chrome/.test(userAgent)
+
+    setIsIosSafari(isIos && isSafari)
+    setIsAppInstalled(checkInstalledMode())
+
+    function handleBeforeInstallPrompt(event) {
+      event.preventDefault()
+      setDeferredInstallPrompt(event)
+    }
+
+    function handleAppInstalled() {
+      setIsAppInstalled(true)
+      setDeferredInstallPrompt(null)
+      setIsInstallPromptDismissed(true)
+      localStorage.setItem(installDismissKey, 'true')
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    window.addEventListener('appinstalled', handleAppInstalled)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', handleAppInstalled)
+    }
+  }, [installDismissKey])
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -282,6 +334,27 @@ function HomePage() {
     await handleSelectLongGameChoice(choiceToSave)
   }
 
+  async function handleInstallApp() {
+    if (!deferredInstallPrompt) {
+      return
+    }
+
+    setIsInstallingApp(true)
+
+    try {
+      await deferredInstallPrompt.prompt()
+      await deferredInstallPrompt.userChoice
+    } finally {
+      setDeferredInstallPrompt(null)
+      setIsInstallingApp(false)
+    }
+  }
+
+  function handleDismissInstallPrompt() {
+    setIsInstallPromptDismissed(true)
+    localStorage.setItem(installDismissKey, 'true')
+  }
+
   const timeUntilNewYearsEve = useMemo(() => {
     const targetTimestamp = getNewYearsEveTimestamp(new Date(now))
     const remainingMs = Math.max(0, targetTimestamp - now)
@@ -334,6 +407,17 @@ function HomePage() {
       return (a.displayNumber ?? a.taskNumber) - (b.displayNumber ?? b.taskNumber)
     })
   }, [tasks])
+
+  const taskColumns = useMemo(() => {
+    const columnCount = 3
+    const itemsPerColumn = Math.ceil(orderedTasks.length / columnCount)
+
+    return Array.from({ length: columnCount }, (_, index) => {
+      const start = index * itemsPerColumn
+      const end = start + itemsPerColumn
+      return orderedTasks.slice(start, end)
+    })
+  }, [orderedTasks])
 
   function handleSignOut() {
     setIsMobileMenuOpen(false)
@@ -456,6 +540,10 @@ function HomePage() {
       !longGameStatus.isBye &&
       longGameStatus.opponent,
   )
+  const shouldShowInstallCard =
+    !isAppInstalled &&
+    !isInstallPromptDismissed &&
+    (Boolean(deferredInstallPrompt) || isIosSafari)
 
   return (
     <main className="app-shell">
@@ -515,6 +603,53 @@ function HomePage() {
           </div>
         </section>
 
+        {shouldShowInstallCard ? (
+          <section className="panel pwa-install-card" aria-label="Install app prompt">
+            <h2>{language === 'pt' ? 'Instalar aplicativo' : 'Install the app'}</h2>
+
+            {deferredInstallPrompt ? (
+              <p className="muted">
+                {language === 'pt'
+                  ? 'Instale o Tracey Trials para abrir mais rápido e usar como app no seu dispositivo.'
+                  : 'Install Tracey Trials for faster access and an app-like experience on your device.'}
+              </p>
+            ) : (
+              <div className="stack pwa-install-ios-wrap">
+                <p className="muted">
+                  {language === 'pt'
+                    ? 'No iPhone/iPad, adicione pelo Safari para usar como app.'
+                    : 'On iPhone/iPad, add it from Safari to use it like an app.'}
+                </p>
+                <ol className="pwa-install-steps">
+                  <li>{language === 'pt' ? 'Abra este site no Safari.' : 'Open this site in Safari.'}</li>
+                  <li>{language === 'pt' ? 'Toque em Compartilhar.' : 'Tap Share.'}</li>
+                  <li>
+                    {language === 'pt'
+                      ? 'Escolha Adicionar a Tela de Início.'
+                      : 'Choose Add to Home Screen.'}
+                  </li>
+                </ol>
+              </div>
+            )}
+
+            <div className="pwa-install-actions">
+              {deferredInstallPrompt ? (
+                <button
+                  className="button"
+                  type="button"
+                  onClick={handleInstallApp}
+                  disabled={isInstallingApp}
+                >
+                  {language === 'pt' ? 'Instalar agora' : 'Install now'}
+                </button>
+              ) : null}
+              <button className="button-ghost" type="button" onClick={handleDismissInstallPrompt}>
+                {language === 'pt' ? 'Agora não' : 'Not now'}
+              </button>
+            </div>
+          </section>
+        ) : null}
+
         <section className="panel-grid">
           <article className="panel stack">
             <div className="panel-header">
@@ -547,7 +682,7 @@ function HomePage() {
                   <p className="muted">{copy.noTasks}</p>
                 ) : (
                   <div className="task-checklist-grid">
-                    {[orderedTasks.slice(0, 10), orderedTasks.slice(10)].map((taskColumn, columnIndex) => (
+                    {taskColumns.map((taskColumn, columnIndex) => (
                       <div key={columnIndex} className="task-checklist-column">
                         {taskColumn.map((task) => {
                           const taskNumber = task.taskNumber
@@ -559,7 +694,10 @@ function HomePage() {
                           const shouldShowDueDate =
                             task.hasTimeConstraint &&
                             task.deadlineLabel &&
-                            task.title.trim().toLowerCase() !== 'eggscessive engineering'
+                            ![
+                              'eggscessive engineering',
+                              'this taskmaster thing is harder than it looks.',
+                            ].includes(task.title.trim().toLowerCase())
 
                           const categoryLabelByKey = {
                             race: copy.raceLabel,

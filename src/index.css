@@ -55,16 +55,18 @@
 
 html {
   background: var(--bg);
+  overflow-x: clip;
 }
 
 body {
   margin: 0;
-  min-width: 320px;
+  overflow-x: clip;
   min-height: 100vh;
 }
 
 #root {
   min-height: 100svh;
+  overflow-x: clip;
 }
 
 button,

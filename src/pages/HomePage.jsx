@@ -540,10 +540,7 @@ function HomePage() {
       !longGameStatus.isBye &&
       longGameStatus.opponent,
   )
-  const shouldShowInstallCard =
-    !isAppInstalled &&
-    !isInstallPromptDismissed &&
-    (Boolean(deferredInstallPrompt) || isIosSafari)
+  const shouldShowInstallCard = !isAppInstalled && !isInstallPromptDismissed
 
   return (
     <main className="app-shell">
@@ -613,7 +610,7 @@ function HomePage() {
                   ? 'Instale o Tracey Trials para abrir mais rápido e usar como app no seu dispositivo.'
                   : 'Install Tracey Trials for faster access and an app-like experience on your device.'}
               </p>
-            ) : (
+            ) : isIosSafari ? (
               <div className="stack pwa-install-ios-wrap">
                 <p className="muted">
                   {language === 'pt'
@@ -627,6 +624,31 @@ function HomePage() {
                     {language === 'pt'
                       ? 'Escolha Adicionar a Tela de Início.'
                       : 'Choose Add to Home Screen.'}
+                  </li>
+                </ol>
+              </div>
+            ) : (
+              <div className="stack pwa-install-ios-wrap">
+                <p className="muted">
+                  {language === 'pt'
+                    ? 'Seu navegador ainda não liberou o botão de instalação direta. Você pode instalar pelo menu do navegador agora.'
+                    : 'Your browser has not exposed the one-tap install button yet. You can install now from the browser menu.'}
+                </p>
+                <ol className="pwa-install-steps">
+                  <li>
+                    {language === 'pt'
+                      ? 'Abra o menu do navegador (geralmente os 3 pontos).'
+                      : 'Open the browser menu (usually the 3 dots).'}
+                  </li>
+                  <li>
+                    {language === 'pt'
+                      ? 'Escolha Instalar aplicativo ou Adicionar à tela inicial.'
+                      : 'Choose Install app or Add to Home Screen.'}
+                  </li>
+                  <li>
+                    {language === 'pt'
+                      ? 'Confirme para concluir a instalação.'
+                      : 'Confirm to finish installation.'}
                   </li>
                 </ol>
               </div>

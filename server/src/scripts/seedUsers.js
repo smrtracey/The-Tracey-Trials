@@ -13,6 +13,7 @@ const defaultFirstNames = [
   'harper',
   'indie',
   'jordan',
+  'karen',
   'sean',
 ]
 

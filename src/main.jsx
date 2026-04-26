@@ -26,11 +26,30 @@ function handleTouchMove(event) {
 
   if (Math.abs(deltaX) > 8 && Math.abs(deltaX) > Math.abs(deltaY)) {
     event.preventDefault()
+    resetHorizontalScroll()
+  }
+}
+
+function resetHorizontalScroll() {
+  const rootElement = document.getElementById('root')
+
+  if (rootElement && rootElement.scrollLeft !== 0) {
+    rootElement.scrollLeft = 0
+  }
+
+  if (document.documentElement.scrollLeft !== 0) {
+    document.documentElement.scrollLeft = 0
+  }
+
+  if (document.body.scrollLeft !== 0) {
+    document.body.scrollLeft = 0
   }
 }
 
 document.addEventListener('touchstart', handleTouchStart, { passive: true })
 document.addEventListener('touchmove', handleTouchMove, { passive: false })
+document.addEventListener('scroll', resetHorizontalScroll, { passive: true, capture: true })
+window.addEventListener('scroll', resetHorizontalScroll, { passive: true })
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

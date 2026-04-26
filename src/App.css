@@ -184,14 +184,13 @@
   cursor: pointer;
   transition:
     transform 0.2s ease,
-    opacity 0.2s ease,
-    box-shadow 0.2s ease;
+    opacity 0.2s ease;
 }
 
 .button {
   background: linear-gradient(135deg, var(--accent), var(--accent-strong));
   color: white;
-  box-shadow: 0 16px 24px rgba(111, 63, 246, 0.25);
+  box-shadow: none;
 }
 
 .button-secondary {
@@ -432,7 +431,20 @@
 .hero-meta .meta-group {
   display: flex;
   gap: 12px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.hero-meta .pill {
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.hero-meta .desktop-signout-button {
+  margin-inline: auto;
+  box-shadow: none;
 }
 
 .pwa-install-card {
@@ -446,6 +458,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  justify-content: center;
 }
 
 .pwa-install-ios-wrap {
@@ -454,10 +467,17 @@
 
 .pwa-install-steps {
   margin: 0;
-  padding-left: 20px;
+  padding-left: 0;
+  list-style-position: inside;
+  text-align: center;
   color: var(--text-soft);
   display: grid;
   gap: 4px;
+  justify-items: center;
+}
+
+.pwa-install-steps li {
+  max-width: 32ch;
 }
 
 .pill {
@@ -491,6 +511,23 @@
   flex-wrap: wrap;
   gap: 16px;
   margin-bottom: 18px;
+}
+
+.tasks-panel-header {
+  position: relative;
+  min-height: 42px;
+  padding-right: 54px;
+}
+
+.tasks-panel-header > div {
+  min-width: 0;
+}
+
+.tasks-panel-header .task-toggle-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin: 0;
 }
 
 .submission-preview {
@@ -739,6 +776,22 @@
 .long-game-content p {
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+.long-game-choice-summary {
+  text-align: center;
+}
+
+.long-game-choice-word {
+  font-weight: 700;
+}
+
+.long-game-choice-word--betray {
+  color: #dc2626;
+}
+
+.long-game-choice-word--cooperate {
+  color: #059669;
 }
 
 .long-game-title-wrap {
@@ -1005,6 +1058,22 @@
 
   .desktop-signout-button {
     display: inline-flex;
+  }
+
+  .hero-meta .meta-group {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    width: auto;
+  }
+
+  .hero-meta .pill {
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    white-space: normal;
+  }
+
+  .hero-meta .desktop-signout-button {
+    margin-inline: 0;
   }
 
   .task-meta-grid {

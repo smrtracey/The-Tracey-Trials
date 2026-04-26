@@ -322,46 +322,18 @@ function TaskDetailsPage() {
 
                   {longGameStatus ? (
                     <div className="long-game-content">
-                      <p>
-                        <strong>{copy.longGameRoundLabel}:</strong> {longGameStatus.roundNumber}
-                      </p>
-                      <p>
-                        <strong>{copy.longGameCountdownLabel}:</strong>{' '}
-                        {formatLongGameCountdown(longGameStatus.endDate, longGameNow)}
-                      </p>
-
-                      <p>
-                        <strong>{copy.longGameOpponentLabel}:</strong> {longGameStatus.opponent.displayName}
-                      </p>
-
-                      <div className="long-game-choice-block">
-                        <p className="long-game-choice-prompt">{copy.longGameChoosePrompt}</p>
-                        <div className="long-game-choice-actions">
-                          <button
-                            className={`button-secondary${longGameStatus.currentChoice === 'cooperate' ? ' long-game-choice-active' : ''}`}
-                            type="button"
-                            disabled={isSavingLongGameChoice || Boolean(longGameStatus.currentChoice)}
-                            onClick={() => handleConfirmLongGameChoice('cooperate')}
+                      {longGameStatus.currentChoice ? (
+                        <p className="muted long-game-choice-summary">
+                          You've chosen to{' '}
+                          <span
+                            className={`long-game-choice-word long-game-choice-word--${longGameStatus.currentChoice}`}
                           >
-                            {copy.cooperate}
-                          </button>
-                          <button
-                            className={`button-secondary${longGameStatus.currentChoice === 'betray' ? ' long-game-choice-active' : ''}`}
-                            type="button"
-                            disabled={isSavingLongGameChoice || Boolean(longGameStatus.currentChoice)}
-                            onClick={() => handleConfirmLongGameChoice('betray')}
-                          >
-                            {copy.betray}
-                          </button>
-                        </div>
-
-                        {longGameStatus.currentChoice ? (
-                          <p className="muted">
-                            {copy.longGameYourChoice}:{' '}
-                            {longGameStatus.currentChoice === 'cooperate' ? copy.cooperate : copy.betray}
-                          </p>
-                        ) : null}
-                      </div>
+                            {longGameStatus.currentChoice}
+                          </span>{' '}
+                          {longGameStatus.currentChoice === 'cooperate' ? 'with ' : ''}
+                          {longGameStatus.opponent.displayName}
+                        </p>
+                      ) : null}
                     </div>
                   ) : null}
                 </section>

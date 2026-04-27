@@ -787,11 +787,11 @@
 }
 
 .long-game-choice-word--betray {
-  color: #dc2626;
+  color: #dc2626 !important;
 }
 
 .long-game-choice-word--cooperate {
-  color: #059669;
+  color: #059669 !important;
 }
 
 .long-game-title-wrap {

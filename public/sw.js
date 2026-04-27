@@ -59,3 +59,40 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// Show a notification when a push message arrives
+self.addEventListener('push', (event) => {
+  let data = { title: 'The Tracey Trials', body: 'You have a new update!' };
+
+  try {
+    data = event.data?.json() ?? data;
+  } catch {
+    data.body = event.data?.text() ?? data.body;
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/icon-ttt-concept-1.png',
+      badge: '/icon-ttt-192px.png',
+      tag: 'tracey-trials-notification',
+      renotify: true,
+    })
+  );
+});
+
+// Open the app when a notification is clicked
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      return clients.openWindow('/');
+    })
+  );
+});

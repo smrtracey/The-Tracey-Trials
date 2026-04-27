@@ -175,3 +175,40 @@ export async function fetchJudgeLeaderboard(token) {
     },
   })
 }
+
+export async function fetchVapidPublicKey() {
+  return request('/api/push/vapid-public-key')
+}
+
+export async function savePushSubscription(token, subscription) {
+  return request('/api/push/subscribe', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(subscription),
+  })
+}
+
+export async function deletePushSubscription(token, endpoint) {
+  return request('/api/push/subscribe', {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ endpoint }),
+  })
+}
+
+export async function sendJudgePushNotification(token, { title, body }) {
+  return request('/api/judge/push/send', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ title, body }),
+  })
+}

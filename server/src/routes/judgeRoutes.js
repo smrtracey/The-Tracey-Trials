@@ -5,6 +5,7 @@ import { LongGameDecision } from '../models/LongGameDecision.js'
 import { Submission } from '../models/Submission.js'
 import { Task } from '../models/Task.js'
 import { User } from '../models/User.js'
+import { sendPushToAll } from '../services/pushService.js'
 
 const judgeRoutes = Router()
 
@@ -189,6 +190,36 @@ judgeRoutes.get('/leaderboard', async (_request, response, next) => {
       }))
 
     return response.json({ leaderboard })
+  } catch (error) {
+    return next(error)
+  }
+})
+
+judgeRoutes.post('/push/send', async (request, response, next) => {
+  const { title, body } = request.body
+
+  if (!title || !body) {
+    return response.status(400).json({ message: 'title and body are required.' })
+  }
+
+  try {
+    const result = await sendPushToAll({ title, body })
+    return response.json(result)
+  } catch (error) {
+    return next(error)
+  }
+})
+
+judgeRoutes.post('/push/send', async (request, response, next) => {
+  const { title, body } = request.body
+
+  if (!title || !body) {
+    return response.status(400).json({ message: 'title and body are required.' })
+  }
+
+  try {
+    const result = await sendPushToAll({ title, body })
+    return response.json(result)
   } catch (error) {
     return next(error)
   }

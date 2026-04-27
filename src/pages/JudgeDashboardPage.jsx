@@ -5,6 +5,7 @@ import {
   fetchJudgeLongGameRounds,
   fetchJudgeSubmissions,
   fetchJudgeTasks,
+  sendJudgePushNotification,
 } from '../lib/api'
 
 function formatDateTime(value) {
@@ -89,6 +90,10 @@ function JudgeDashboardPage() {
   const [submissionSort, setSubmissionSort] = useState({ key: 'createdAtTimestamp', direction: 'desc' })
   const [longGameSort, setLongGameSort] = useState({ key: 'roundNumber', direction: 'desc' })
   const [leaderboardSort, setLeaderboardSort] = useState({ key: 'longGamePoints', direction: 'desc' })
+  const [notifyTitle, setNotifyTitle] = useState('')
+  const [notifyBody, setNotifyBody] = useState('')
+  const [isSendingNotification, setIsSendingNotification] = useState(false)
+  const [notifyResult, setNotifyResult] = useState('')
 
   useEffect(() => {
     let isMounted = true
@@ -326,6 +331,26 @@ function JudgeDashboardPage() {
     }))
   }
 
+  async function handleSendNotification(event) {
+    event.preventDefault()
+    if (!notifyTitle.trim() || !notifyBody.trim()) return
+    setIsSendingNotification(true)
+    setNotifyResult('')
+    try {
+      const result = await sendJudgePushNotification(token, {
+        title: notifyTitle.trim(),
+        body: notifyBody.trim(),
+      })
+      setNotifyResult(`Sent to ${result.sent} device(s).${result.failed > 0 ? ` ${result.failed} failed.` : ''}`)
+      setNotifyTitle('')
+      setNotifyBody('')
+    } catch (sendError) {
+      setNotifyResult(`Error: ${sendError.message}`)
+    } finally {
+      setIsSendingNotification(false)
+    }
+  }
+
   return (
     <main className="app-shell">
       <section className="judge-dashboard-layout">
@@ -388,6 +413,38 @@ function JudgeDashboardPage() {
             <span>Only unresolved Long Game rows</span>
           </label>
         </div>
+
+        <article className="task-meta-card">
+          <div className="judge-section-header">
+            <h2>Send Push Notification</h2>
+          </div>
+          <form className="auth-form" onSubmit={handleSendNotification}>
+            <div className="field">
+              <label htmlFor="notify-title">Title</label>
+              <input
+                id="notify-title"
+                value={notifyTitle}
+                onChange={(event) => setNotifyTitle(event.target.value)}
+                placeholder="e.g. New Task!"
+                required
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="notify-body">Message</label>
+              <input
+                id="notify-body"
+                value={notifyBody}
+                onChange={(event) => setNotifyBody(event.target.value)}
+                placeholder="e.g. A new task has been added. Check the app!"
+                required
+              />
+            </div>
+            {notifyResult ? <p className="muted">{notifyResult}</p> : null}
+            <button className="button" type="submit" disabled={isSendingNotification}>
+              {isSendingNotification ? 'Sending…' : 'Send to all contestants'}
+            </button>
+          </form>
+        </article>
 
         <div className="judge-dashboard-grid">
           <article className="task-meta-card judge-dashboard-card">

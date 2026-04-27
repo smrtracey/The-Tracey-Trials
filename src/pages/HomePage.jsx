@@ -295,11 +295,12 @@ function HomePage() {
   async function handleSelectLongGameChoice(choice) {
     setLongGameError('')
     setIsSavingLongGameChoice(true)
+    setLongGameStatus((current) => (current ? { ...current, currentChoice: choice } : current))
 
     try {
       await saveLongGameChoice(token, choice)
-      setLongGameStatus((current) => (current ? { ...current, currentChoice: choice } : current))
     } catch (choiceError) {
+      setLongGameStatus((current) => (current ? { ...current, currentChoice: null } : current))
       setLongGameError(choiceError.message)
     } finally {
       setIsSavingLongGameChoice(false)
@@ -731,7 +732,67 @@ function HomePage() {
                       {longGameStatus.currentChoice === 'cooperate' ? 'with ' : ''}
                       {longGameStatus.opponent.displayName}
                     </p>
-                  ) : null}
+                  ) : (
+                    <>
+                      <div className="long-game-meta">
+                        <div className="long-game-meta-row">
+                          <span className="long-game-meta-label">{copy.longGameRoundLabel}</span>
+                          <span className="long-game-meta-value">
+                            {longGameStatus.roundNumber}
+                            {longGameStatus.roundStatus === 'active' ? (
+                              <span className="long-game-status-badge long-game-status-badge--active">
+                                {copy.longGameStatusActive}
+                              </span>
+                            ) : longGameStatus.roundStatus === 'upcoming' ? (
+                              <span className="long-game-status-badge long-game-status-badge--upcoming">
+                                {copy.longGameStatusUpcoming}
+                              </span>
+                            ) : (
+                              <span className="long-game-status-badge long-game-status-badge--closed">
+                                {copy.longGameStatusCompleted}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        {longGameStatus.endDate ? (
+                          <div className="long-game-meta-row">
+                            <span className="long-game-meta-label">{copy.longGameCountdownLabel}</span>
+                            <span className="long-game-meta-value long-game-countdown">
+                              {formatLongGameCountdown(longGameStatus.endDate, now)}
+                            </span>
+                          </div>
+                        ) : null}
+                        <div className="long-game-meta-row">
+                          <span className="long-game-meta-label">{copy.longGameOpponentLabel}</span>
+                          <span className="long-game-meta-value">{longGameStatus.opponent.displayName}</span>
+                        </div>
+                      </div>
+
+                      {longGameError ? <div className="error-banner">{longGameError}</div> : null}
+
+                      <div className="long-game-choice-prompt">
+                        <p className="muted">{copy.longGameChoosePrompt}</p>
+                        <div className="long-game-choice-buttons">
+                          <button
+                            className="button long-game-cooperate-button"
+                            type="button"
+                            onClick={() => handleConfirmLongGameChoice('cooperate')}
+                            disabled={isSavingLongGameChoice}
+                          >
+                            {copy.cooperate}
+                          </button>
+                          <button
+                            className="button-ghost long-game-betray-button"
+                            type="button"
+                            onClick={() => handleConfirmLongGameChoice('betray')}
+                            disabled={isSavingLongGameChoice}
+                          >
+                            {copy.betray}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </article>
             ) : null}

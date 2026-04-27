@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AuthContext } from './auth-context'
 import { fetchCurrentUser, loginUser } from '../lib/api'
+import { subscribeToPushNotifications } from '../lib/push'
 
 const TOKEN_STORAGE_KEY = 'tracey-trials-token'
 
@@ -25,6 +26,7 @@ export function AuthProvider({ children }) {
         if (isMounted) {
           setUser(session.user)
           setAuthError('')
+          subscribeToPushNotifications(token)
         }
       } catch (error) {
         if (isMounted) {
@@ -53,6 +55,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem(TOKEN_STORAGE_KEY, data.token)
     setToken(data.token)
     setUser(data.user)
+    subscribeToPushNotifications(data.token)
     return data.user
   }
 

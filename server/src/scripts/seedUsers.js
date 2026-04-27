@@ -54,8 +54,7 @@ const judge = {
 async function seedUsers() {
   await connectDatabase()
 
-  const usernamesToKeep = [...contestants.map((contestant) => contestant.username), judge.username]
-  await User.deleteMany({ username: { $nin: usernamesToKeep } })
+  await User.deleteMany({ role: { $in: ['contestant', 'judge'] } })
 
   for (const contestant of contestants) {
     const passwordHash = await bcrypt.hash(contestant.password, 10)

@@ -69,6 +69,37 @@ function sortRows(rows, sortConfig) {
   })
 }
 
+function getSubmissionMediaItems(submission) {
+  if (Array.isArray(submission.mediaItems) && submission.mediaItems.length > 0) {
+    return submission.mediaItems
+  }
+
+  if (submission.mediaUrl && submission.mediaType) {
+    return [
+      {
+        url: submission.mediaUrl,
+        type: submission.mediaType,
+        originalName: submission.originalName ?? '',
+      },
+    ]
+  }
+
+  return []
+}
+
+function getMediaUrl(url) {
+  if (!url) {
+    return ''
+  }
+
+  if (/^https?:\/\//i.test(url)) {
+    return url
+  }
+
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? ''
+  return `${apiBaseUrl}${url}`
+}
+
 function JudgeDashboardPage() {
   const { token, signOut } = useAuth()
   const [submissions, setSubmissions] = useState([])
@@ -82,6 +113,7 @@ function JudgeDashboardPage() {
   const [searchFilter, setSearchFilter] = useState('')
   const [onlyUnresolved, setOnlyUnresolved] = useState(false)
   const [activeContestant, setActiveContestant] = useState('')
+  const [activeSubmissionId, setActiveSubmissionId] = useState('')
   const [expandedSections, setExpandedSections] = useState({
     submissions: true,
     longGame: true,
@@ -263,6 +295,7 @@ function JudgeDashboardPage() {
       sortRows(
         filteredSubmissions.map((submission) => ({
           ...submission,
+          mediaItems: getSubmissionMediaItems(submission),
           createdAtTimestamp: new Date(submission.createdAt).getTime() || 0,
           contestantLabel: `${submission.displayName} (@${submission.username})`,
           hasMedia: (submission.mediaItems?.length ?? 0) > 0 || submission.mediaType ? 'Yes' : 'No',
@@ -315,6 +348,30 @@ function JudgeDashboardPage() {
       matchups: contestantMatchups,
     }
   }, [activeContestant, flattenedMatchups, leaderboard, submissions])
+
+  const activeSubmission = useMemo(() => {
+    if (!activeContestantData || !activeSubmissionId) {
+      return null
+    }
+
+    return activeContestantData.submissions.find((submission) => submission.id === activeSubmissionId) ?? null
+  }, [activeContestantData, activeSubmissionId])
+
+  const highlightedSubmission = useMemo(() => {
+    if (!activeContestantData) {
+      return null
+    }
+
+    if (activeSubmission) {
+      return activeSubmission
+    }
+
+    const firstWithMedia = activeContestantData.submissions.find(
+      (submission) => getSubmissionMediaItems(submission).length > 0,
+    )
+
+    return firstWithMedia ?? activeContestantData.submissions[0] ?? null
+  }, [activeContestantData, activeSubmission])
 
   function renderSortIndicator(config, columnKey) {
     if (config.key !== columnKey) {
@@ -517,13 +574,53 @@ function JudgeDashboardPage() {
                             <button
                               type="button"
                               className="judge-link-button"
-                              onClick={() => setActiveContestant(submission.username)}
+                              onClick={() => {
+                                setActiveContestant(submission.username)
+                                setActiveSubmissionId(submission.id)
+                              }}
                             >
                               #{submission.contestantNumber} {submission.displayName}
                             </button>
                           </td>
                           <td>{submission.taskLabel}</td>
-                          <td>{submission.hasMedia}</td>
+                          <td>
+                            {submission.mediaItems.length === 0 ? (
+                              <span>{submission.hasMedia}</span>
+                            ) : (
+                              <div className="judge-media-grid">
+                                {submission.mediaItems.map((mediaItem, mediaIndex) =>
+                                  mediaItem.type === 'video' ? (
+                                    <a
+                                      key={`${submission.id}-video-link-${mediaIndex}`}
+                                      className="judge-media-link"
+                                      href={getMediaUrl(mediaItem.url)}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      aria-label={`Open video ${mediaIndex + 1} in a new tab`}
+                                    >
+                                      <video className="judge-media-preview" src={getMediaUrl(mediaItem.url)} controls preload="metadata" />
+                                    </a>
+                                  ) : (
+                                    <a
+                                      key={`${submission.id}-image-link-${mediaIndex}`}
+                                      className="judge-media-link"
+                                      href={getMediaUrl(mediaItem.url)}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      aria-label={`Open image ${mediaIndex + 1} in a new tab`}
+                                    >
+                                      <img
+                                        className="judge-media-preview"
+                                        src={getMediaUrl(mediaItem.url)}
+                                        alt={mediaItem.originalName || `Submission media ${mediaIndex + 1}`}
+                                        loading="lazy"
+                                      />
+                                    </a>
+                                  ),
+                                )}
+                              </div>
+                            )}
+                          </td>
                           <td>{submission.textBody || '-'}</td>
                         </tr>
                       ))}
@@ -593,7 +690,10 @@ function JudgeDashboardPage() {
                             <button
                               type="button"
                               className="judge-link-button"
-                              onClick={() => setActiveContestant(matchup.playerA)}
+                              onClick={() => {
+                                setActiveContestant(matchup.playerA)
+                                setActiveSubmissionId('')
+                              }}
                             >
                               {matchup.playerA}
                             </button>
@@ -603,7 +703,10 @@ function JudgeDashboardPage() {
                             <button
                               type="button"
                               className="judge-link-button"
-                              onClick={() => setActiveContestant(matchup.playerB)}
+                              onClick={() => {
+                                setActiveContestant(matchup.playerB)
+                                setActiveSubmissionId('')
+                              }}
                             >
                               {matchup.playerB}
                             </button>
@@ -688,7 +791,10 @@ function JudgeDashboardPage() {
                             <button
                               type="button"
                               className="judge-link-button"
-                              onClick={() => setActiveContestant(entry.username)}
+                              onClick={() => {
+                                setActiveContestant(entry.username)
+                                setActiveSubmissionId('')
+                              }}
                             >
                               {entry.displayName} (@{entry.username})
                             </button>
@@ -711,7 +817,14 @@ function JudgeDashboardPage() {
         </div>
 
         {activeContestantData ? (
-          <div className="judge-side-panel-backdrop" role="presentation" onClick={() => setActiveContestant('')}>
+          <div
+            className="judge-side-panel-backdrop"
+            role="presentation"
+            onClick={() => {
+              setActiveContestant('')
+              setActiveSubmissionId('')
+            }}
+          >
             <aside className="judge-side-panel" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
               <div className="panel-header">
                 <div>
@@ -724,10 +837,71 @@ function JudgeDashboardPage() {
                     {activeContestantData.entry?.longGamePoints ?? 0}
                   </p>
                 </div>
-                <button className="button-ghost" type="button" onClick={() => setActiveContestant('')}>
+                <button
+                  className="button-ghost"
+                  type="button"
+                  onClick={() => {
+                    setActiveContestant('')
+                    setActiveSubmissionId('')
+                  }}
+                >
                   Close
                 </button>
               </div>
+
+              {highlightedSubmission ? (
+                <div className="judge-side-panel-section">
+                  <h3>Selected submission</h3>
+                  <div className="judge-scroll-area">
+                    <article className="judge-list-item">
+                      <strong>{getTaskLabel(highlightedSubmission.taskNumber)}</strong>
+                      <span>{formatDateTime(highlightedSubmission.createdAt)}</span>
+                      <span>{highlightedSubmission.textBody || '-'}</span>
+                      {getSubmissionMediaItems(highlightedSubmission).length > 0 ? (
+                        <div className="judge-media-grid judge-media-grid--panel judge-media-grid--featured">
+                          {getSubmissionMediaItems(highlightedSubmission).map((mediaItem, mediaIndex) =>
+                            mediaItem.type === 'video' ? (
+                              <a
+                                key={`${highlightedSubmission.id}-featured-video-link-${mediaIndex}`}
+                                className="judge-media-link"
+                                href={getMediaUrl(mediaItem.url)}
+                                target="_blank"
+                                rel="noreferrer"
+                                aria-label={`Open selected video ${mediaIndex + 1} in a new tab`}
+                              >
+                                <video
+                                  className="judge-media-preview judge-media-preview--featured"
+                                  src={getMediaUrl(mediaItem.url)}
+                                  controls
+                                  preload="metadata"
+                                />
+                              </a>
+                            ) : (
+                              <a
+                                key={`${highlightedSubmission.id}-featured-image-link-${mediaIndex}`}
+                                className="judge-media-link"
+                                href={getMediaUrl(mediaItem.url)}
+                                target="_blank"
+                                rel="noreferrer"
+                                aria-label={`Open selected image ${mediaIndex + 1} in a new tab`}
+                              >
+                                <img
+                                  className="judge-media-preview judge-media-preview--featured"
+                                  src={getMediaUrl(mediaItem.url)}
+                                  alt={mediaItem.originalName || `Submission media ${mediaIndex + 1}`}
+                                  loading="lazy"
+                                />
+                              </a>
+                            ),
+                          )}
+                        </div>
+                      ) : (
+                        <span className="muted">No media attached.</span>
+                      )}
+                    </article>
+                  </div>
+                </div>
+              ) : null}
 
               <div className="judge-side-panel-section">
                 <h3>Recent submissions ({activeContestantData.submissions.length})</h3>
@@ -737,10 +911,61 @@ function JudgeDashboardPage() {
                   ) : (
                     <ul className="judge-list">
                       {activeContestantData.submissions.slice(0, 20).map((submission) => (
-                        <li key={submission.id} className="judge-list-item">
+                        <li
+                          key={submission.id}
+                          className="judge-list-item"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setActiveSubmissionId(submission.id)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault()
+                              setActiveSubmissionId(submission.id)
+                            }
+                          }}
+                        >
                           <strong>{getTaskLabel(submission.taskNumber)}</strong>
                           <span>{formatDateTime(submission.createdAt)}</span>
                           <span>{submission.textBody || '-'}</span>
+                          {getSubmissionMediaItems(submission).length > 0 ? (
+                            <div className="judge-media-grid judge-media-grid--panel">
+                              {getSubmissionMediaItems(submission).map((mediaItem, mediaIndex) =>
+                                mediaItem.type === 'video' ? (
+                                  <a
+                                    key={`${submission.id}-panel-video-link-${mediaIndex}`}
+                                    className="judge-media-link"
+                                    href={getMediaUrl(mediaItem.url)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    aria-label={`Open contestant video ${mediaIndex + 1} in a new tab`}
+                                  >
+                                    <video
+                                      className="judge-media-preview"
+                                      src={getMediaUrl(mediaItem.url)}
+                                      controls
+                                      preload="metadata"
+                                    />
+                                  </a>
+                                ) : (
+                                  <a
+                                    key={`${submission.id}-panel-image-link-${mediaIndex}`}
+                                    className="judge-media-link"
+                                    href={getMediaUrl(mediaItem.url)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    aria-label={`Open contestant image ${mediaIndex + 1} in a new tab`}
+                                  >
+                                    <img
+                                      className="judge-media-preview"
+                                      src={getMediaUrl(mediaItem.url)}
+                                      alt={mediaItem.originalName || `Submission media ${mediaIndex + 1}`}
+                                      loading="lazy"
+                                    />
+                                  </a>
+                                ),
+                              )}
+                            </div>
+                          ) : null}
                         </li>
                       ))}
                     </ul>

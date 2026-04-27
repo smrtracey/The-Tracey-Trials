@@ -4,6 +4,8 @@ import mongoose from 'mongoose'
 import { env } from '../config/env.js'
 import { User } from '../models/User.js'
 import { Submission } from '../models/Submission.js'
+import { LongGameDecision } from '../models/LongGameDecision.js'
+import { PushSubscription } from '../models/PushSubscription.js'
 
 dotenv.config()
 
@@ -46,10 +48,14 @@ async function resetCompetitionState() {
   )
 
   const submissionResult = await Submission.deleteMany({})
+  const longGameDecisionResult = await LongGameDecision.deleteMany({})
+  const pushSubscriptionResult = await PushSubscription.deleteMany({})
 
   console.log(`contestantsReset=${contestantResetResult.modifiedCount}`)
   console.log(`judgesReset=${judgeResetResult.modifiedCount}`)
   console.log(`submissionsDeleted=${submissionResult.deletedCount}`)
+  console.log(`longGameDecisionsDeleted=${longGameDecisionResult.deletedCount}`)
+  console.log(`pushSubscriptionsDeleted=${pushSubscriptionResult.deletedCount}`)
 
   await mongoose.disconnect()
 }

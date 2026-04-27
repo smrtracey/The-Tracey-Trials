@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import SubmissionForm from '../components/SubmissionForm'
 import { useAuth } from '../hooks/useAuth'
+import { subscribeToPushNotifications } from '../lib/push'
 import {
   createSubmission,
   fetchCompletedTasks,
@@ -102,6 +103,11 @@ function HomePage() {
   const [isInstallingApp, setIsInstallingApp] = useState(false)
   const [isIosSafari, setIsIosSafari] = useState(false)
   const [isAppInstalled, setIsAppInstalled] = useState(false)
+  const [notificationPermission, setNotificationPermission] = useState(() =>
+    typeof Notification !== 'undefined' ? Notification.permission : 'default',
+  )
+  const [notificationMessage, setNotificationMessage] = useState('')
+  const [isEnablingNotifications, setIsEnablingNotifications] = useState(false)
   const [isTaskCardExpanded, setIsTaskCardExpanded] = useState(() => {
     const key = `tracey-trials-task-card-expanded-${user.id}`
     return localStorage.getItem(key) !== 'false'
@@ -128,6 +134,25 @@ function HomePage() {
   useEffect(() => {
     setIsInstallPromptDismissed(localStorage.getItem(installDismissKey) === 'true')
   }, [installDismissKey])
+
+  useEffect(() => {
+    function syncNotificationPermission() {
+      if (typeof Notification === 'undefined') {
+        return
+      }
+
+      setNotificationPermission(Notification.permission)
+    }
+
+    syncNotificationPermission()
+    window.addEventListener('focus', syncNotificationPermission)
+    document.addEventListener('visibilitychange', syncNotificationPermission)
+
+    return () => {
+      window.removeEventListener('focus', syncNotificationPermission)
+      document.removeEventListener('visibilitychange', syncNotificationPermission)
+    }
+  }, [])
 
   useEffect(() => {
     function checkInstalledMode() {
@@ -267,6 +292,40 @@ function HomePage() {
       setError(submitError.message)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleEnableNotifications() {
+    if (!isAppInstalled && isIosSafari) {
+      setNotificationMessage('Install to Home Screen first, then tap Enable notifications.')
+      return
+    }
+
+    if (!(typeof Notification !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window)) {
+      setNotificationMessage('Notifications are not available in this browser mode.')
+      return
+    }
+
+    if (notificationPermission === 'denied') {
+      setNotificationMessage('Notifications are blocked. Enable them in iPhone Settings > Notifications > Tracey Trials.')
+      return
+    }
+
+    setIsEnablingNotifications(true)
+    setNotificationMessage('')
+
+    try {
+      await subscribeToPushNotifications(token)
+      const permission = Notification.permission
+      setNotificationPermission(permission)
+
+      if (permission === 'granted') {
+        setNotificationMessage('Notifications enabled.')
+      } else {
+        setNotificationMessage('Notification permission was not granted.')
+      }
+    } finally {
+      setIsEnablingNotifications(false)
     }
   }
 
@@ -496,6 +555,9 @@ function HomePage() {
       longGameStatus.opponent,
   )
   const shouldShowInstallCard = !isAppInstalled && !isInstallPromptDismissed
+  const supportsPush =
+    typeof Notification !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window
+  const shouldShowNotificationCard = notificationPermission !== 'granted'
 
   return (
     <main className="app-shell">
@@ -542,6 +604,34 @@ function HomePage() {
             </button>
           </div>
         </section>
+
+        {shouldShowNotificationCard ? (
+          <section className="panel pwa-install-card" aria-label="Notification permission prompt">
+            <h2>Enable notifications</h2>
+            {!isAppInstalled && isIosSafari ? (
+              <p className="muted">Install to Home Screen first, then enable notifications from inside the app.</p>
+            ) : !supportsPush ? (
+              <p className="muted">Notifications are not available in this browser mode.</p>
+            ) : notificationPermission === 'denied' ? (
+              <p className="muted">Notifications are blocked. Open iPhone Settings &gt; Notifications &gt; Tracey Trials and allow them.</p>
+            ) : (
+              <p className="muted">Tap once to enable push notifications for new tasks.</p>
+            )}
+
+            <div className="pwa-install-actions">
+              <button
+                className="button"
+                type="button"
+                onClick={handleEnableNotifications}
+                disabled={isEnablingNotifications || (!isAppInstalled && isIosSafari)}
+              >
+                {isEnablingNotifications ? 'Enabling…' : 'Enable notifications'}
+              </button>
+            </div>
+
+            {notificationMessage ? <p className="muted">{notificationMessage}</p> : null}
+          </section>
+        ) : null}
 
         {shouldShowInstallCard ? (
           <section className="panel pwa-install-card" aria-label="Install app prompt">

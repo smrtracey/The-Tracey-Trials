@@ -35,18 +35,22 @@ function getTransporter() {
   return cachedTransporter
 }
 
-function buildAttachmentList(uploadedFile) {
-  if (!uploadedFile?.path) {
+function buildAttachmentList(uploadedFiles) {
+  const normalizedFiles = Array.isArray(uploadedFiles)
+    ? uploadedFiles
+    : uploadedFiles?.path
+      ? [uploadedFiles]
+      : []
+
+  if (normalizedFiles.length === 0) {
     return []
   }
 
-  return [
-    {
-      filename: uploadedFile.originalname || path.basename(uploadedFile.path),
-      path: uploadedFile.path,
-      contentType: uploadedFile.mimetype,
-    },
-  ]
+  return normalizedFiles.map((uploadedFile) => ({
+    filename: uploadedFile.originalname || path.basename(uploadedFile.path),
+    path: uploadedFile.path,
+    contentType: uploadedFile.mimetype,
+  }))
 }
 
 function formatSubmittedAtForIreland(value) {
@@ -73,14 +77,14 @@ function formatSubmittedAtForIreland(value) {
   return `${values.hour}:${values.minute}:${values.second} ${values.day}-${values.month}-${values.year}`
 }
 
-export async function sendSubmissionEmail({ submission, user, task, uploadedFile }) {
+export async function sendSubmissionEmail({ submission, user, task, uploadedFiles }) {
   const transporter = getTransporter()
 
   if (!transporter) {
     return { sent: false, skipped: true, reason: 'Email settings are not configured.' }
   }
 
-  const attachments = buildAttachmentList(uploadedFile)
+  const attachments = buildAttachmentList(uploadedFiles)
   const taskLabel = task?.title ? `${submission.taskNumber} - ${task.title}` : String(submission.taskNumber)
   const contestantLabel = `${user.displayName} (@${user.username})`
   const textBody = submission.textBody || '(none)'

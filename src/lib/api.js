@@ -68,13 +68,13 @@ export async function fetchSubmissions(token) {
   })
 }
 
-export async function createSubmission({ token, file, taskNumber, textBody, caption = '' }) {
+export async function createSubmission({ token, files = [], taskNumber, textBody, caption = '' }) {
   const formData = new FormData()
   formData.append('taskNumber', String(taskNumber))
   formData.append('textBody', textBody)
   formData.append('caption', caption)
 
-  if (file) {
+  for (const file of files) {
     formData.append('media', file)
   }
 

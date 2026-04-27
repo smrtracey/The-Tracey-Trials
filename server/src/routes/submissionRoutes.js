@@ -34,11 +34,12 @@ submissionRoutes.get('/', async (_request, response, next) => {
   }
 })
 
-submissionRoutes.post('/', upload.single('media'), async (request, response, next) => {
+submissionRoutes.post('/', upload.array('media', 10), async (request, response, next) => {
   try {
     const taskNumber = Number(request.body.taskNumber)
     const textBody = (request.body.textBody ?? '').trim()
-    const hasMedia = Boolean(request.file)
+    const uploadedFiles = Array.isArray(request.files) ? request.files : []
+    const hasMedia = uploadedFiles.length > 0
     const hasTextBody = Boolean(textBody)
 
     if (!Number.isInteger(taskNumber) || taskNumber < 1) {
@@ -57,20 +58,20 @@ submissionRoutes.post('/', upload.single('media'), async (request, response, nex
       return response.status(404).json({ message: 'Task not found for this submission.' })
     }
 
-    const mediaUrl = hasMedia ? `/uploads/${path.basename(request.file.path)}` : null
-    const mediaType = hasMedia
-      ? request.file.mimetype.startsWith('video/')
-        ? 'video'
-        : 'image'
-      : null
+    const mediaItems = uploadedFiles.map((file) => ({
+      url: `/uploads/${path.basename(file.path)}`,
+      type: file.mimetype.startsWith('video/') ? 'video' : 'image',
+      originalName: file.originalname,
+    }))
 
     const submission = await Submission.create({
       user: request.user._id,
       taskNumber,
       textBody,
-      mediaUrl,
-      mediaType,
-      originalName: hasMedia ? request.file.originalname : null,
+      mediaItems,
+      mediaUrl: mediaItems[0]?.url ?? null,
+      mediaType: mediaItems[0]?.type ?? null,
+      originalName: mediaItems[0]?.originalName ?? null,
     })
 
     await submission.populate('user')
@@ -80,7 +81,7 @@ submissionRoutes.post('/', upload.single('media'), async (request, response, nex
         submission: Submission.toClient(submission),
         user: submission.user,
         task,
-        uploadedFile: request.file,
+        uploadedFiles,
       })
     } catch (emailError) {
       console.error('Failed to send submission email notification.', emailError)

@@ -265,7 +265,7 @@ function JudgeDashboardPage() {
           ...submission,
           createdAtTimestamp: new Date(submission.createdAt).getTime() || 0,
           contestantLabel: `${submission.displayName} (@${submission.username})`,
-          hasMedia: submission.mediaType ? 'Yes' : 'No',
+          hasMedia: (submission.mediaItems?.length ?? 0) > 0 || submission.mediaType ? 'Yes' : 'No',
           taskLabel: getTaskLabel(submission.taskNumber),
         })),
         submissionSort,

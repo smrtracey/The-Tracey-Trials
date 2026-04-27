@@ -1,10 +1,51 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 function toTitleCase(value) {
   return value
     .split(' ')
     .map((word) => (word ? `${word.charAt(0).toUpperCase()}${word.slice(1)}` : word))
     .join(' ')
+}
+
+function setFilePickerOpenState(isOpen) {
+  document.body.classList.toggle('file-picker-open', isOpen)
+}
+
+const MAX_MEDIA_FILES = 10
+
+function restoreRootScrollPosition(scrollTop) {
+  const rootElement = document.getElementById('root')
+
+  if (!rootElement || typeof scrollTop !== 'number') {
+    return
+  }
+
+  rootElement.scrollTop = scrollTop
+}
+
+function revokePreviewUrls(previews) {
+  for (const preview of previews) {
+    URL.revokeObjectURL(preview.url)
+  }
+}
+
+function getFileKey(file) {
+  return `${file.name}::${file.size}::${file.lastModified}`
+}
+
+function mergeUniqueFiles(existingFiles, nextFiles) {
+  const keys = new Set(existingFiles.map(getFileKey))
+  const merged = [...existingFiles]
+
+  for (const file of nextFiles) {
+    const key = getFileKey(file)
+    if (!keys.has(key)) {
+      merged.push(file)
+      keys.add(key)
+    }
+  }
+
+  return merged.slice(0, MAX_MEDIA_FILES)
 }
 
 function SubmissionForm({
@@ -16,23 +57,34 @@ function SubmissionForm({
   const hasFixedTaskNumber = Number.isInteger(fixedTaskNumber) && fixedTaskNumber > 0
   const [taskNumber, setTaskNumber] = useState('')
   const [textBody, setTextBody] = useState('')
-  const [file, setFile] = useState(null)
-  const [previewUrl, setPreviewUrl] = useState('')
-  const [previewKind, setPreviewKind] = useState('')
+  const [files, setFiles] = useState([])
+  const [previews, setPreviews] = useState([])
+  const pickerScrollTopRef = useRef(0)
 
-  const fileName = useMemo(() => file?.name ?? 'No file selected', [file])
+  const fileName = useMemo(() => {
+    if (files.length === 0) {
+      return 'No file selected'
+    }
+
+    if (files.length === 1) {
+      return files[0].name
+    }
+
+    return `${files.length} files selected`
+  }, [files])
+  const hasSubmissionContent = Boolean(files.length > 0 || textBody.trim())
   const copy = {
     fileEmpty: 'No file selected',
-    chooseFile: 'Choose file',
-    taskNumber: 'Task number',
+    chooseFile: 'Add file',
+    taskNumber: 'Task name',
     taskPlaceholder: 'Choose a task',
-    mediaLabel: 'Photo or video (optional)',
-    mediaHint: 'Attach a photo/video, a text body, or both.',
-    textLabel: 'Body of text (optional)',
+    mediaLabel: 'Photos or videos',
+    mediaHint: 'Attach up to 10 photos/videos, a text body, or both.',
+    textLabel: 'Body of text',
     textPlaceholder: 'Write your task response here',
-    previewAlt: 'Selected preview',
+    previewAlt: 'Selected media preview',
     footerHint: 'Add either media, text, or both before submitting.',
-    footerHintWithTask: 'Task number is required. Add either media, text, or both before submitting.',
+    footerHintWithTask: 'Task name is required. Add either media, text, or both before submitting.',
     submitting: 'Submitting\u2026',
     submit: 'Submit task',
   }
@@ -43,20 +95,58 @@ function SubmissionForm({
     }
   }, [fixedTaskNumber, hasFixedTaskNumber])
 
-  function handleFileChange(event) {
-    const nextFile = event.target.files?.[0] ?? null
-    setFile(nextFile)
+  useEffect(() => {
+    return () => {
+      revokePreviewUrls(previews)
+    }
+  }, [previews])
 
-    if (!nextFile) {
-      setPreviewUrl('')
-      setPreviewKind('')
+  function handleFileChange(event) {
+    const nextFiles = Array.from(event.target.files ?? [])
+    setFilePickerOpenState(false)
+    window.requestAnimationFrame(() => restoreRootScrollPosition(pickerScrollTopRef.current))
+
+    if (nextFiles.length === 0) {
       return
     }
 
-    const localUrl = URL.createObjectURL(nextFile)
-    setPreviewUrl(localUrl)
-    setPreviewKind(nextFile.type.startsWith('video/') ? 'video' : 'image')
+    setFiles((currentFiles) => {
+      const mergedFiles = mergeUniqueFiles(currentFiles, nextFiles)
+
+      setPreviews((currentPreviews) => {
+        revokePreviewUrls(currentPreviews)
+        return mergedFiles.map((file) => ({
+          url: URL.createObjectURL(file),
+          kind: file.type.startsWith('video/') ? 'video' : 'image',
+          name: file.name,
+        }))
+      })
+
+      return mergedFiles
+    })
+
+    event.target.value = ''
   }
+
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (!document.hidden) {
+        window.setTimeout(() => {
+          setFilePickerOpenState(false)
+          restoreRootScrollPosition(pickerScrollTopRef.current)
+        }, 50)
+      }
+    }
+
+    window.addEventListener('focus', handleVisibilityChange)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      setFilePickerOpenState(false)
+      window.removeEventListener('focus', handleVisibilityChange)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -66,12 +156,12 @@ function SubmissionForm({
       return
     }
 
-    if (!file && !textBody.trim()) {
+    if (files.length === 0 && !textBody.trim()) {
       return
     }
 
     await onSubmit({
-      file,
+      files,
       taskNumber: normalizedTaskNumber,
       textBody: textBody.trim(),
     })
@@ -80,9 +170,9 @@ function SubmissionForm({
       setTaskNumber('')
     }
     setTextBody('')
-    setFile(null)
-    setPreviewUrl('')
-    setPreviewKind('')
+    setFiles([])
+    revokePreviewUrls(previews)
+    setPreviews([])
     event.currentTarget.reset()
 
     if (hasFixedTaskNumber) {
@@ -120,6 +210,12 @@ function SubmissionForm({
           name="media"
           type="file"
           accept="image/*,video/*"
+          multiple
+          onClick={() => {
+            const rootElement = document.getElementById('root')
+            pickerScrollTopRef.current = rootElement?.scrollTop ?? 0
+            setFilePickerOpenState(true)
+          }}
           onChange={handleFileChange}
         />
         <label className="button-secondary file-picker-button" htmlFor="media">
@@ -141,19 +237,31 @@ function SubmissionForm({
         <span className="field-hint">{textBody.length}/4000 characters</span>
       </div>
 
-      {previewUrl && previewKind === 'image' ? (
-        <img className="submission-preview" src={previewUrl} alt={copy.previewAlt} />
-      ) : null}
-
-      {previewUrl && previewKind === 'video' ? (
-        <video className="submission-preview" src={previewUrl} controls preload="metadata" />
+      {previews.length > 0 ? (
+        <div className="submission-preview-grid">
+          {previews.map((preview) =>
+            preview.kind === 'image' ? (
+              <img key={preview.url} className="submission-preview" src={preview.url} alt={copy.previewAlt} />
+            ) : (
+              <video
+                key={preview.url}
+                className="submission-preview"
+                src={preview.url}
+                controls
+                preload="metadata"
+              />
+            ),
+          )}
+        </div>
       ) : null}
 
       <div className="mini-card">
-        <strong>{file ? fileName : copy.fileEmpty}</strong>
-        <p className="meta-text">
-          {hasFixedTaskNumber ? copy.footerHint : copy.footerHintWithTask}
-        </p>
+        <strong>{files.length > 0 ? fileName : copy.fileEmpty}</strong>
+        {!hasSubmissionContent ? (
+          <p className="meta-text">
+            {hasFixedTaskNumber ? copy.footerHint : copy.footerHintWithTask}
+          </p>
+        ) : null}
       </div>
 
       <button
@@ -162,7 +270,7 @@ function SubmissionForm({
         disabled={
           isSubmitting ||
           (!hasFixedTaskNumber && (!taskNumber || Number(taskNumber) < 1)) ||
-          (!file && !textBody.trim())
+          (files.length === 0 && !textBody.trim())
         }
       >
         {isSubmitting ? copy.submitting : copy.submit}

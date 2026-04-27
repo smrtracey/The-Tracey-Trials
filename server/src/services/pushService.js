@@ -2,13 +2,17 @@ import webpush from 'web-push'
 import { env } from '../config/env.js'
 import { PushSubscription } from '../models/PushSubscription.js'
 
-webpush.setVapidDetails(env.vapidSubject, env.vapidPublicKey, env.vapidPrivateKey)
-
 /**
  * Send a push notification to all stored subscriptions.
  * Subscriptions that return 410 Gone are automatically removed.
  */
 export async function sendPushToAll(payload) {
+  if (!env.vapidPublicKey || !env.vapidPrivateKey) {
+    throw new Error('VAPID keys are not configured. Set VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, and VAPID_SUBJECT in environment variables.')
+  }
+
+  webpush.setVapidDetails(env.vapidSubject, env.vapidPublicKey, env.vapidPrivateKey)
+
   const subscriptions = await PushSubscription.find().lean()
 
   if (subscriptions.length === 0) {

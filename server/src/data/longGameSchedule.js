@@ -4,12 +4,13 @@ export const longGameSchedule = [
     startDate: '2026-04-23',
     endDate: '2026-05-07',
     matchups: [
+      ['tau', 'paul'],
       ['maria', 'danny'],
       ['marika', 'pierce'],
       ['adriana', 'will'],
       ['katy', 'cathal'],
     ],
-    byeUsername: 'tau',
+    byeUsername: null,
   },
   {
     roundNumber: 2,

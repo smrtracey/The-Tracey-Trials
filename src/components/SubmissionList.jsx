@@ -21,13 +21,23 @@ function SubmissionList({ submissions }) {
     <div className="submissions-grid">
       {submissions.map((submission) => (
         <article className="submission-card" key={submission.id}>
-          {submission.mediaUrl && submission.mediaType === 'image' ? (
-            <img src={submission.mediaUrl} alt={submission.caption || 'Task submission image'} />
-          ) : null}
-
-          {submission.mediaUrl && submission.mediaType === 'video' ? (
-            <video className="submission-media" src={submission.mediaUrl} controls preload="metadata" />
-          ) : null}
+          {(submission.mediaItems ?? []).map((mediaItem, index) =>
+            mediaItem.type === 'image' ? (
+              <img
+                key={`${submission.id}-image-${index}`}
+                src={mediaItem.url}
+                alt={submission.caption || 'Task submission image'}
+              />
+            ) : (
+              <video
+                key={`${submission.id}-video-${index}`}
+                className="submission-media"
+                src={mediaItem.url}
+                controls
+                preload="metadata"
+              />
+            ),
+          )}
 
           <header>
             <div>
@@ -39,7 +49,7 @@ function SubmissionList({ submissions }) {
 
           {submission.textBody ? <p className="submission-text">{submission.textBody}</p> : null}
 
-          {!submission.mediaUrl && !submission.textBody ? (
+          {!(submission.mediaItems?.length > 0) && !submission.textBody ? (
             <p className="meta-text">No media or text body provided.</p>
           ) : null}
 

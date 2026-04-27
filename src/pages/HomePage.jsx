@@ -84,7 +84,6 @@ function formatLongGameCountdown(endDate, nowTimestamp) {
 function HomePage() {
   const { token, user, signOut } = useAuth()
   const [now, setNow] = useState(() => Date.now())
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [activeIconInfo, setActiveIconInfo] = useState('')
   const [tasks, setTasks] = useState([])
   const [completedTaskNumbers, setCompletedTaskNumbers] = useState([])
@@ -414,22 +413,7 @@ function HomePage() {
     })
   }, [orderedTasks])
 
-  function handleSignOut() {
-    setIsMobileMenuOpen(false)
-    signOut()
-  }
-
   function handleScrollToSubmit() {
-    const rootElement = document.getElementById('root')
-
-    if (rootElement) {
-      rootElement.scrollTo({
-        top: rootElement.scrollHeight,
-        behavior: 'smooth',
-      })
-      return
-    }
-
     window.scrollTo({
       top: document.documentElement.scrollHeight,
       behavior: 'smooth',
@@ -453,7 +437,6 @@ function HomePage() {
     submitSectionTitle: 'Submit a new task',
     submitSectionHint: 'You can add photos, videos, or text responses for your tasks.',
     signOut: 'Sign out',
-    openMenu: 'Open account menu',
     mandatoryLabel: 'Mandatory task',
     mandatoryInfoTitle: 'Mandatory task',
     mandatoryInfoBody: 'The ! icon means this is a mandatory task and must be completed.',
@@ -518,27 +501,30 @@ function HomePage() {
     <main className="app-shell">
       <div className="home-layout">
         <section className="hero-panel screen-card" style={{ width: '100%' }}>
-          <div className="mobile-menu">
+          <div className="home-signout-row">
             <button
-              className="mobile-menu-toggle"
+              className="button-ghost home-signout-icon-button"
               type="button"
-              onClick={() => setIsMobileMenuOpen((current) => !current)}
-              aria-expanded={isMobileMenuOpen}
-              aria-label={copy.openMenu}
+              onClick={signOut}
+              aria-label={copy.signOut}
+              title={copy.signOut}
             >
-              <span className="hamburger-icon" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </span>
+              <svg
+                className="home-signout-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" />
+                <path d="M10 17l5-5-5-5" />
+                <path d="M15 12H4" />
+              </svg>
             </button>
-            {isMobileMenuOpen ? (
-              <div className="mobile-menu-dropdown">
-                <button className="mobile-menu-item" type="button" onClick={handleSignOut}>
-                  {copy.signOut}
-                </button>
-              </div>
-            ) : null}
           </div>
 
           <div className="title-block">
@@ -551,7 +537,7 @@ function HomePage() {
               <span className="pill">{copy.tasksCompleted}</span>
               <span className="pill">{timeUntilNewYearsEve}</span>
             </div>
-            <button className="button desktop-signout-button" type="button" onClick={handleScrollToSubmit}>
+            <button className="button hero-submit-button" type="button" onClick={handleScrollToSubmit}>
               {copy.submit}
             </button>
           </div>
@@ -739,19 +725,15 @@ function HomePage() {
                           <span className="long-game-meta-label">{copy.longGameRoundLabel}</span>
                           <span className="long-game-meta-value">
                             {longGameStatus.roundNumber}
-                            {longGameStatus.roundStatus === 'active' ? (
-                              <span className="long-game-status-badge long-game-status-badge--active">
-                                {copy.longGameStatusActive}
-                              </span>
-                            ) : longGameStatus.roundStatus === 'upcoming' ? (
+                            {longGameStatus.roundStatus === 'upcoming' ? (
                               <span className="long-game-status-badge long-game-status-badge--upcoming">
                                 {copy.longGameStatusUpcoming}
                               </span>
-                            ) : (
+                            ) : longGameStatus.roundStatus === 'closed' ? (
                               <span className="long-game-status-badge long-game-status-badge--closed">
                                 {copy.longGameStatusCompleted}
                               </span>
-                            )}
+                            ) : null}
                           </span>
                         </div>
                         {longGameStatus.endDate ? (

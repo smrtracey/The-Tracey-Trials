@@ -28,6 +28,7 @@ async function bootstrapSharedSecretsForUser(user) {
       user: user._id,
       taskNumber: SHARED_SECRETS_TASK_NUMBER,
       textBody: 'Automatic submission: contestant logged in and unlocked the homepage.',
+      mediaItems: [],
       mediaUrl: null,
       mediaType: null,
       originalName: null,
@@ -40,7 +41,7 @@ async function bootstrapSharedSecretsForUser(user) {
         submission: Submission.toClient(submission),
         user: submission.user,
         task,
-        uploadedFile: null,
+        uploadedFiles: [],
       })
     } catch (emailError) {
       console.error('Failed to send Shared Secrets auto-submission email.', emailError)

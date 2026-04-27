@@ -14,6 +14,7 @@ const defaultFirstNames = [
   'indie',
   'jordan',
   'karen',
+  'paul',
   'sean',
 ]
 

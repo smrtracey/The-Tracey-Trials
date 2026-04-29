@@ -80,7 +80,7 @@ const tasks = [
   },
   {
     taskNumber: 10,
-    title: "I don't care about your sleep schedule.",
+    title: "Sunbelievable",
     goal: 'Take the best sunrise and sunset photo on the same day.',
     description:
       "You'll need to either submit 2 timestamped photos for this one or get a timelapse from sunrise to sunset. Hope nobody steals your goPro during the timelapse...",
@@ -128,7 +128,7 @@ const tasks = [
   },
   {
     taskNumber: 16,
-    title: 'This taskmaster thing is harder than it looks.',
+    title: 'Task and you shall receive',
     goal: 'Create the best Task',
     description:
       "You have 3 months to submit your task. In the following 3 months other players will try to complete the tasks you've made. You get points for how much I like the tasks and bonus points if people complete them.",

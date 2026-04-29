@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tracey Trials — Task Cards</title>
+  <style>
+    /* ── Page setup ────────────────────────────────────────────── */
+    @page {
+      size: 210mm 110mm landscape;
+      margin: 0;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Georgia', serif;
+      background: #f0ece4;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      padding: 24px;
+      justify-content: center;
+    }
+
+    /* ── Card shell ────────────────────────────────────────────── */
+    .card {
+      width: 210mm;
+      height: 110mm;
+      background: #fff;
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.14);
+      page-break-after: always;
+    }
+
+    /* ── Header band ───────────────────────────────────────────── */
+    .card-header {
+      background: #fff;
+      color: #1a1a2e;
+      padding: 20px 16px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .card-label {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 7.5px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: #888;
+    }
+
+    .card-title {
+      font-family: 'Georgia', serif;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: #1a1a2e;
+      text-align: center;
+      padding-bottom: 8px;
+    }
+
+    .card-title-rule {
+      width: 36px;
+      height: 1.5px;
+      background: #1a1a2e;
+      margin: 0 auto 2px;
+    }
+
+    /* ── Accent bar ────────────────────────────────────────────── */
+    .card-accent {
+      display: none;
+    }
+
+    /* ── Body ──────────────────────────────────────────────────── */
+    .card-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding: 14px 20px 12px;
+      gap: 12px;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    /* ── Goal block ────────────────────────────────────────────── */
+    .goal-block {
+      border-left: none;
+      border-top: 1.5px solid #1a1a2e;
+      border-bottom: 1.5px solid #1a1a2e;
+      padding: 6px 0;
+    }
+
+    .goal-label {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 4px;
+      text-align: center;
+    }
+
+    .goal-text {
+      font-family: 'Georgia', serif;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #1a1a2e;
+      line-height: 1.4;
+    }
+
+    .desc-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    /* ── Description ───────────────────────────────────────────── */
+    .desc-label {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 4px;
+      text-align: center;
+    }
+
+    .desc-text {
+      font-family: 'Georgia', serif;
+      font-size: 13.5px;
+      color: #333;
+      line-height: 1.55;
+      width: 50%;
+      margin: 12px auto 0;
+    }
+
+    .task-doodle {
+      width: 21%;
+      margin: 8px auto 0;
+      color: #111;
+    }
+
+    .task-doodle-image {
+      width: 100%;
+      height: auto;
+      display: block;
+      filter: grayscale(1);
+      object-fit: cover;
+      object-position: 0 -20px;
+      /* This crops 20px from the top visually */
+    }
+
+    .task-doodle svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* ── Badges ────────────────────────────────────────────────── */
+    .badge-row {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .badge {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 20px;
+      border: 1.5px solid;
+    }
+
+    .badge-mandatory { color: #000; border-color: #000; }
+    .badge-race      { color: #000; border-color: #000; }
+    .badge-special   { color: #000; border-color: #000; }
+    .badge-timed     { color: #000; border-color: #000; }
+    .badge-deadline  { color: #333; border-color: #555; }
+
+    /* ── Footer ────────────────────────────────────────────────── */
+    .card-footer {
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid #ccc;
+      flex-shrink: 0;
+    }
+
+    .card-footer-brand {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 7.5px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #999;
+    }
+
+    .card-footer-icon {
+      font-size: 13px;
+      filter: grayscale(1);
+    }
+
+    /* ── Print ─────────────────────────────────────────────────── */
+    @media print {
+      body {
+        background: none;
+        padding: 0;
+        gap: 0;
+        display: block;
+      }
+      .card {
+        box-shadow: none;
+        border-radius: 0;
+        margin: 0 auto;
+        page-break-after: avoid;
+        page-break-inside: avoid;
+        break-inside: avoid;
+        display: block;
+      }
+      .card:nth-of-type(2n) {
+        page-break-after: always;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<script>
+const tasks = [
+  {
+    number: 1,
+    title: 'Shared Secrets',
+    goal: 'Work together to figure out the password.',
+    description: "You've all been given private hints. You'll need to work together to figure the password. However, points will only be rewarded to the first 3 players to correctly enter the password.",
+    category: 'race',
+    mandatory: true,
+  },
+  {
+    number: 2,
+    title: 'Rope Jam Showdown',
+    goal: 'Improve your skipping the most.',
+    description: "You'll have 30 seconds on Finale day to improve on your day 1 score.",
+    category: 'common',
+  },
+  {
+    number: 3,
+    title: 'Gotta go Fast!',
+    goal: 'Be the first person to take a selfie with a celebrity.',
+    description: "The celebrity can't be just someone in the background like on a stage or whatever. Also must be someone the taskmaster knows. Bonus points for taskmaster shoutouts.",
+    category: 'race',
+  },
+  {
+    number: 4,
+    title: 'Crowd Control!',
+    goal: 'Start the biggest group chant.',
+    description: "Must include at least 10 people. The taskmaster will factor in the location of the chant. Chant at a concert — pretty easy. Chant at a funeral — pretty tough…",
+    category: 'common',
+  },
+  {
+    number: 5,
+    title: 'Laugh Track Record',
+    goal: 'Get the best video of another player laughing.',
+    description: "This will go to a group vote. I want to see people laughing so hard they cry!",
+    category: 'common',
+  },
+  {
+    number: 6,
+    title: 'Friendship Farming',
+    goal: 'Make the most new friends!',
+    description: "A friend is someone you've been out with after the first time you've met. You need a photo/video of when you met and another with the same person at a later date. No group photos. Include your new friend's name.",
+    category: 'common',
+  },
+  {
+    number: 7,
+    title: 'Side Questing',
+    goal: 'Complete the most tasks.',
+    description: "Top 3 players with the most completed tasks get points here.",
+    category: 'common',
+  },
+  {
+    number: 8,
+    title: 'Pitch Imperfect',
+    goal: 'Perform the best Karaoke.',
+    description: "No points for singing talent. Judging will be based on song choice, costume, and stage presence. You may team up with other players for this one!",
+    category: 'common',
+  },
+  {
+    number: 9,
+    title: "Hat's Off",
+    goal: 'Get the taskmaster the best hat.',
+    description: "I like hats. I will pick my favourite. You have €20 to spend on the hat of your choice.",
+    category: 'common',
+  },
+  {
+    number: 10,
+    title: "Sunbelievable",
+    goal: 'Take the best sunrise and sunset photo on the same day.',
+    description: "Submit 2 timestamped photos or a timelapse from sunrise to sunset. Hope nobody steals your GoPro during the timelapse…",
+    category: 'common',
+  },
+  {
+    number: 11,
+    title: 'Digital Child Neglect Challenge',
+    goal: 'Keep a Tamagotchi alive the longest.',
+    description: "You only get ONE submission. If you think it's gonna die tomorrow, submit today. Longest living Tamagotchi wins.",
+    category: 'common',
+  },
+  {
+    number: 12,
+    title: 'For One Day Only!',
+    goal: 'Make the best single-day documentary.',
+    description: "Any style, any day. Interviews, narration, POV — your call. Submissions must be a video.",
+    category: 'common',
+  },
+  {
+    number: 13,
+    title: 'The Highlight Reel',
+    goal: 'Get the most GoPro-worthy videos over the next 6 months.',
+    description: "Cool action shots of anything. Even mundane stuff. If I see an amazing tea-making video that's better than a deep-sea diving video, it gets points. Variety matters.",
+    category: 'common',
+  },
+  {
+    number: 14,
+    title: "It's a Tradition — They Expect It",
+    goal: 'Steal the best glass.',
+    description: "You may steal only from a pub. Not from people's homes. I'll decide which glass is my favourite. Upload photo/video evidence and present the glass at the finale.",
+    category: 'common',
+  },
+  {
+    number: 15,
+    title: 'Love is in the Air',
+    goal: 'Take this beach ball on the most romantic date.',
+    description: "This one is a little bit different so that I get to play a little prank on our Danny Boy. Everyone except for Dan gets a beach ball. Dan however gets a sex doll with the same task. If at any point during the competition Dan finds out that he's the only one with a sex doll, he'll get 5 points and everyone else gets 0. Should it come up in conversation, Dan should think everyone has a sex doll.",
+    category: 'common',
+  },
+  {
+    number: 15.1,
+    title: 'Love is in the Air',
+    goal: 'Take your inflatable doll on the most romantic date.',
+    description: "Take your inflatable doll on the most romantic date you can imagine. Be creative! Photo or video evidence required.",
+    category: 'common',
+    imageOverride: 'loveIsInTheAir2.png',
+  },
+  {
+    number: 16,
+    title: 'Task and you shall receive',
+    goal: 'Create the best task.',
+    description: "You have 3 months to submit your task. In the following 3 months, other players will try to complete it. Points for how much I like the task plus bonus points if people complete it.",
+    category: 'timed',
+    deadline: 'Deadline: September 15th',
+  },
+  {
+    number: 17,
+    title: 'In Their Natural Habitat',
+    goal: 'Get the best collection of candid photos of other players.',
+    description: "Can be taken at any time and of everyone — but must be taken without the other player realising. Capped at 20 photo submissions per player.",
+    category: 'common',
+  },
+  {
+    number: 19,
+    title: "Let's Get Quizical",
+    goal: 'As a team, submit 20 questions for a table quiz.',
+    description: "Quiz played in person at the finale. If nobody from other teams can answer your team's question, your team loses a point.",
+    category: 'timed',
+    mandatory: true,
+  },
+  {
+    number: 20,
+    title: 'The Long Game',
+    goal: 'Earn the most points by going head to head with other players.',
+    description: "Recurring decision-based challenge. Every couple of weeks, players are paired and choose to cooperate or betray.",
+    category: 'special',
+    mandatory: true,
+  },
+  {
+    number: 21,
+    title: 'Eggscessive Engineering',
+    goal: 'Create a Rube Goldberg Machine to crack an egg.',
+    description: "Done as teams of 3 with role constraints. First submission decides the order constraints.",
+    category: 'timed',
+    deadline: 'Deadline: September 15th',
+  },
+  {
+    number: 24,
+    title: 'TaskMasterChef',
+    goal: 'Create the best homemade recipe and instructional video.',
+    description: "You have 3 months to submit a home recipe in writing and an instructional video. The taskmaster will cook and rank all submissions.",
+    category: 'timed',
+  },
+]
+
+const categoryIcon = {
+  race: '🏁',
+  special: '⭐',
+  timed: '⏱',
+  common: '🎯',
+}
+
+const taskDoodleSvg = {
+  1: `
+    <svg viewBox="0 0 220 70" role="img" aria-label="Shush face doodle">
+      <circle cx="110" cy="35" r="21" fill="none" stroke="currentColor" stroke-width="1.5"/>
+
+      <circle cx="102" cy="30" r="1.7" fill="currentColor"/>
+      <circle cx="118" cy="30" r="1.7" fill="currentColor"/>
+
+      <path d="M102 42 Q110 46 118 42" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+
+      <path d="M110 24 L110 50" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <path d="M105 41 L115 41" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+
+      <path d="M95 48 q-4 4 -8 2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M125 48 q4 4 8 2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+    </svg>
+  `,
+  2: `
+    <svg viewBox="0 0 220 70" role="img" aria-label="Funny jump rope doodle">
+      <circle cx="110" cy="18" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M110 25 L110 43" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M110 31 L95 35" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M110 31 L125 35" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M110 43 L99 56" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M110 43 L121 56" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+
+      <path d="M94 35 Q110 -22 126 35" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+      <circle cx="94" cy="35" r="1.8" fill="currentColor"/>
+      <circle cx="126" cy="35" r="1.8" fill="currentColor"/>
+    </svg>
+  `,
+}
+
+// Drop your custom images into ./task-card-images and map them here.
+// Example: 2: 'rope-jam-showdown.png'
+const taskImageFiles = {
+  1: 'sharedSecrets.png',
+  2: 'ropeJamShowdown.png',
+  3: 'GottaGoFast.png',
+  4: 'crowdControl.png',
+  5: 'laughTrackRecord.png',
+  6: 'friendshipFarming.png',
+  7: 'sideQuesting.png',
+  8: 'pitchImperfect.png',
+  9: 'hatsOff.png',
+ 10: 'sunbelievable.png',
+ 11: 'digitalChildNeglect.png',
+ 12: 'oneDayOnly.png',
+ 13: 'highlightReel.png',
+ 14: 'itsATraditionTheyExpectIt.png',
+ 15: 'loveIsInTheAir.png',
+ '15.1': 'loveIsInTheAir2.png',
+ 16: 'TaskAndYouShallReceive.png',
+ 17: 'inTheirNaturalHabitat.png',
+ 19: 'letsGetQuizical.png',
+ 20: 'theLongGame.png',
+ 21: 'eggscessiveEngineering.png',
+ 24: 'taskMasterChef.png',
+}
+
+for (const task of tasks) {
+  const card = document.createElement('div')
+  card.className = 'card'
+
+  const badges = []
+  if (task.mandatory) badges.push(`<span class="badge badge-mandatory">Mandatory</span>`)
+  if (task.category === 'race') badges.push(`<span class="badge badge-race">Race</span>`)
+  if (task.category === 'special') badges.push(`<span class="badge badge-special">Special</span>`)
+  if (task.category === 'timed') badges.push(`<span class="badge badge-timed">Timed</span>`)
+  if (task.deadline) badges.push(`<span class="badge badge-deadline">${task.deadline}</span>`)
+
+  card.innerHTML = `
+    <div class="card-header">
+      <span class="card-label">The Tracey Trials</span>
+      <h1 class="card-title">${task.title}</h1>
+      <div class="card-title-rule"></div>
+    </div>
+    <div class="card-accent"></div>
+    <div class="card-body">
+      <div class="goal-block">
+        <div class="goal-label">Your Goal</div>
+        <div class="goal-text">${task.goal}</div>
+      </div>
+      ${badges.length ? `<div class="badge-row">${badges.join('')}</div>` : '<div></div>'}
+      <div class="desc-col">
+        <div class="desc-label">Description</div>
+        <p class="desc-text">${task.description}</p>
+        ${taskImageFiles[task.number]
+          ? `<div class="task-doodle"><img class="task-doodle-image" src="./task-card-images/${taskImageFiles[task.number]}" alt="${task.title} doodle" loading="lazy" /></div>`
+          : taskDoodleSvg[task.number]
+            ? `<div class="task-doodle">${taskDoodleSvg[task.number]}</div>`
+            : ''}
+      </div>
+    </div>
+    <div class="card-footer">
+      <span class="card-footer-brand">Tracey Trials 2026</span>
+      <span class="card-footer-icon">${categoryIcon[task.category] ?? '🎯'}</span>
+    </div>
+  `
+
+  document.body.appendChild(card)
+}
+</script>
+
+</body>
+</html>

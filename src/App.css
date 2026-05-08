@@ -1,3 +1,35 @@
+.player-details-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  align-items: start;
+  width: 100%;
+}
+/* Highlight for current round in Long Game overview */
+.judge-current-round {
+  color: #2563eb;
+  font-weight: 700;
+  margin-left: 8px;
+}
+/* Cooperate result coloring for Long Game overview */
+.judge-result-cooperate {
+  color: #2563eb;
+  font-weight: 600;
+}
+/* Win and Loss result coloring for Long Game overview */
+.judge-result-win {
+  color: #059669;
+  font-weight: 600;
+}
+.judge-result-loss {
+  color: #dc2626;
+  font-weight: 600;
+}
+/* Green text for resolved status in Long Game overview */
+.judge-status-resolved {
+  color: #059669;
+  font-weight: 600;
+}
 .fun-title {
   font-family: 'Pacifico', cursive;
   font-weight: 400;
@@ -693,6 +725,9 @@
   border-radius: 16px;
   background: var(--surface-strong);
   padding: 14px;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
 }
 
 .task-meta-card h2 {
@@ -834,7 +869,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding-right: 96px;
   min-height: 34px;
 }
 
@@ -855,12 +889,12 @@
 
 .judge-filter-bar {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: 1fr;
   align-items: end;
-  height: 172px;
-  min-height: 172px;
-  max-height: 172px;
+  height: 116px;
+  min-height: 116px;
+  max-height: 116px;
   overflow: hidden;
 }
 

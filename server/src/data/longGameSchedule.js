@@ -1,219 +1,54 @@
-export const longGameSchedule = [
-  {
-    roundNumber: 1,
-    startDate: '2026-04-23',
-    endDate: '2026-05-07',
-    matchups: [
-      ['tau', 'paul'],
-      ['maria', 'danny'],
-      ['marika', 'pierce'],
-      ['adriana', 'will'],
-      ['katy', 'cathal'],
-    ],
-    byeUsername: null,
-  },
-  {
-    roundNumber: 2,
-    startDate: '2026-05-08',
-    endDate: '2026-05-21',
-    matchups: [
-      ['tau', 'danny'],
-      ['maria', 'will'],
-      ['marika', 'cathal'],
-      ['adriana', 'katy'],
-    ],
-    byeUsername: 'pierce',
-  },
-  {
-    roundNumber: 3,
-    startDate: '2026-05-22',
-    endDate: '2026-06-04',
-    matchups: [
-      ['tau', 'pierce'],
-      ['danny', 'will'],
-      ['maria', 'katy'],
-      ['marika', 'adriana'],
-    ],
-    byeUsername: 'cathal',
-  },
-  {
-    roundNumber: 4,
-    startDate: '2026-06-05',
-    endDate: '2026-06-18',
-    matchups: [
-      ['tau', 'will'],
-      ['pierce', 'cathal'],
-      ['danny', 'katy'],
-      ['maria', 'marika'],
-    ],
-    byeUsername: 'adriana',
-  },
-  {
-    roundNumber: 5,
-    startDate: '2026-06-19',
-    endDate: '2026-07-02',
-    matchups: [
-      ['tau', 'cathal'],
-      ['will', 'katy'],
-      ['pierce', 'adriana'],
-      ['danny', 'marika'],
-    ],
-    byeUsername: 'maria',
-  },
-  {
-    roundNumber: 6,
-    startDate: '2026-07-03',
-    endDate: '2026-07-16',
-    matchups: [
-      ['tau', 'katy'],
-      ['cathal', 'adriana'],
-      ['will', 'marika'],
-      ['pierce', 'maria'],
-    ],
-    byeUsername: 'danny',
-  },
-  {
-    roundNumber: 7,
-    startDate: '2026-07-17',
-    endDate: '2026-07-30',
-    matchups: [
-      ['tau', 'adriana'],
-      ['katy', 'marika'],
-      ['cathal', 'maria'],
-      ['pierce', 'danny'],
-    ],
-    byeUsername: 'will',
-  },
-  {
-    roundNumber: 8,
-    startDate: '2026-07-31',
-    endDate: '2026-08-13',
-    matchups: [
-      ['tau', 'marika'],
-      ['adriana', 'maria'],
-      ['cathal', 'danny'],
-      ['will', 'pierce'],
-    ],
-    byeUsername: 'katy',
-  },
-  {
-    roundNumber: 9,
-    startDate: '2026-08-14',
-    endDate: '2026-08-27',
-    matchups: [
-      ['tau', 'maria'],
-      ['adriana', 'danny'],
-      ['katy', 'pierce'],
-      ['cathal', 'will'],
-    ],
-    byeUsername: 'marika',
-  },
-  {
-    roundNumber: 10,
-    startDate: '2026-08-28',
-    endDate: '2026-09-10',
-    matchups: [
-      ['maria', 'danny'],
-      ['marika', 'pierce'],
-      ['adriana', 'will'],
-      ['katy', 'cathal'],
-    ],
-    byeUsername: 'tau',
-  },
-  {
-    roundNumber: 11,
-    startDate: '2026-09-11',
-    endDate: '2026-09-24',
-    matchups: [
-      ['tau', 'danny'],
-      ['maria', 'will'],
-      ['marika', 'cathal'],
-      ['adriana', 'katy'],
-    ],
-    byeUsername: 'pierce',
-  },
-  {
-    roundNumber: 12,
-    startDate: '2026-09-25',
-    endDate: '2026-10-08',
-    matchups: [
-      ['tau', 'pierce'],
-      ['danny', 'will'],
-      ['maria', 'katy'],
-      ['marika', 'adriana'],
-    ],
-    byeUsername: 'cathal',
-  },
-  {
-    roundNumber: 13,
-    startDate: '2026-10-09',
-    endDate: '2026-10-22',
-    matchups: [
-      ['tau', 'will'],
-      ['pierce', 'cathal'],
-      ['danny', 'katy'],
-      ['maria', 'marika'],
-    ],
-    byeUsername: 'adriana',
-  },
-  {
-    roundNumber: 14,
-    startDate: '2026-10-23',
-    endDate: '2026-11-05',
-    matchups: [
-      ['tau', 'cathal'],
-      ['will', 'katy'],
-      ['pierce', 'adriana'],
-      ['danny', 'marika'],
-    ],
-    byeUsername: 'maria',
-  },
-  {
-    roundNumber: 15,
-    startDate: '2026-11-06',
-    endDate: '2026-11-19',
-    matchups: [
-      ['tau', 'katy'],
-      ['cathal', 'adriana'],
-      ['will', 'marika'],
-      ['pierce', 'maria'],
-    ],
-    byeUsername: 'danny',
-  },
-  {
-    roundNumber: 16,
-    startDate: '2026-11-20',
-    endDate: '2026-12-03',
-    matchups: [
-      ['tau', 'adriana'],
-      ['katy', 'marika'],
-      ['cathal', 'maria'],
-      ['pierce', 'danny'],
-    ],
-    byeUsername: 'will',
-  },
-  {
-    roundNumber: 17,
-    startDate: '2026-12-04',
-    endDate: '2026-12-17',
-    matchups: [
-      ['tau', 'marika'],
-      ['adriana', 'maria'],
-      ['cathal', 'danny'],
-      ['will', 'pierce'],
-    ],
-    byeUsername: 'katy',
-  },
-  {
-    roundNumber: 18,
-    startDate: '2026-12-18',
-    endDate: '2026-12-31',
-    matchups: [
-      ['tau', 'maria'],
-      ['adriana', 'danny'],
-      ['katy', 'pierce'],
-      ['cathal', 'will'],
-    ],
-    byeUsername: 'marika',
-  },
-]
+const today = new Date('2026-05-08');
+const rounds = 18;
+const endDate = new Date('2026-12-31');
+const msPerRound = Math.floor((endDate - today) / rounds);
+
+const contestants = ['tau','maria','adriana','marika','katy','will','pierce','cathal','danny'];
+
+
+
+function generateSingleRoundRobin(players) {
+  const n = players.length;
+  const rounds = n; // For odd n, n rounds, each player gets one bye
+  const schedule = [];
+  // Create a copy and add a dummy for bye
+  const arr = [...players];
+  arr.push(null); // null represents a bye
+  const total = arr.length; // n+1
+  for (let r = 0; r < rounds; r++) {
+    const round = [];
+    let byeUsername = null;
+    for (let i = 0; i < total / 2; i++) {
+      const p1 = arr[i];
+      const p2 = arr[total - 1 - i];
+      if (p1 === null) {
+        byeUsername = p2;
+      } else if (p2 === null) {
+        byeUsername = p1;
+      } else {
+        round.push([p1, p2]);
+      }
+    }
+    schedule.push({ matchups: round, byeUsername });
+    arr.splice(1, 0, arr.pop());
+  }
+  return schedule;
+}
+
+
+// Generate two full single round-robins for 18 rounds
+const singleRound = generateSingleRoundRobin(contestants);
+const fullSchedule = [...singleRound, ...singleRound];
+
+export const longGameSchedule = Array.from({ length: rounds }, (_, i) => {
+  const start = new Date(today.getTime() + i * msPerRound);
+  const end = new Date(today.getTime() + (i + 1) * msPerRound - 1);
+  const { matchups, byeUsername } = fullSchedule[i];
+  return {
+    roundNumber: i + 1,
+    startDate: start.toISOString().slice(0, 10),
+    endDate: end.toISOString().slice(0, 10),
+    matchups,
+    byeUsername,
+  };
+});

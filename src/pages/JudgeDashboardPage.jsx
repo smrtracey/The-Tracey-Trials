@@ -1,184 +1,75 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useAuth } from '../hooks/useAuth'
+
+import SubmissionSidePanel from '../components/judge/SubmissionSidePanel';
+import LeaderboardTable from '../components/judge/LeaderboardTable';
+import LongGameOverview from '../components/judge/LongGameOverview';
+import SubmissionsTable from '../components/SubmissionsTable';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import NotificationPanel from '../components/judge/NotificationPanel';
+import FilterBar from '../components/judge/FilterBar';
+import { useNavigate } from 'react-router-dom';
+import '../custom-checkbox.css';
+import { useAuth } from '../hooks/useAuth';
+
 import {
   fetchJudgeLeaderboard,
   fetchJudgeLongGameRounds,
   fetchJudgeSubmissions,
   fetchJudgeTasks,
-  sendJudgePushNotification,
-} from '../lib/api'
-
-function formatDateTime(value) {
-  if (!value) {
-    return 'Unknown date'
-  }
-
-  const parsed = new Date(value)
-
-  if (Number.isNaN(parsed.getTime())) {
-    return 'Unknown date'
-  }
-
-  return parsed.toLocaleString('en-IE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function formatChoiceWithPoints(choice, points) {
-  if (!choice) {
-    return 'Pending'
-  }
-
-  const label = choice === 'cooperate' ? 'Cooperate' : 'Betray'
-
-  if (typeof points === 'number') {
-    return `${label} (${points} pts)`
-  }
-
-  return `${label} (pending points)`
-}
-
-function getNextDirection(activeKey, currentDirection, nextKey) {
-  if (activeKey !== nextKey) {
-    return 'asc'
-  }
-
-  return currentDirection === 'asc' ? 'desc' : 'asc'
-}
-
-function compareValues(firstValue, secondValue) {
-  if (typeof firstValue === 'number' && typeof secondValue === 'number') {
-    return firstValue - secondValue
-  }
-
-  return String(firstValue).localeCompare(String(secondValue), undefined, { sensitivity: 'base' })
-}
-
-function sortRows(rows, sortConfig) {
-  const multiplier = sortConfig.direction === 'asc' ? 1 : -1
-
-  return [...rows].sort((first, second) => {
-    const firstValue = first[sortConfig.key]
-    const secondValue = second[sortConfig.key]
-
-    return compareValues(firstValue, secondValue) * multiplier
-  })
-}
-
-function getSubmissionMediaItems(submission) {
-  if (Array.isArray(submission.mediaItems) && submission.mediaItems.length > 0) {
-    return submission.mediaItems
-  }
-
-  if (submission.mediaUrl && submission.mediaType) {
-    return [
-      {
-        url: submission.mediaUrl,
-        type: submission.mediaType,
-        originalName: submission.originalName ?? '',
-      },
-    ]
-  }
-
-  return []
-}
-
-function getMediaUrl(url) {
-  if (!url) {
-    return ''
-  }
-
-  if (/^https?:\/\//i.test(url)) {
-    return url
-  }
-
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? ''
-  return `${apiBaseUrl}${url}`
-}
+  markSubmissionDone as apiMarkSubmissionDone,
+} from '../lib/api';
 
 function JudgeDashboardPage() {
-  const { token, signOut } = useAuth()
-  const [submissions, setSubmissions] = useState([])
-  const [tasks, setTasks] = useState([])
-  const [longGameRounds, setLongGameRounds] = useState([])
-  const [leaderboard, setLeaderboard] = useState([])
-  const [error, setError] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
-  const [selectedContestant, setSelectedContestant] = useState('all')
-  const [taskFilter, setTaskFilter] = useState('all')
-  const [searchFilter, setSearchFilter] = useState('')
-  const [onlyUnresolved, setOnlyUnresolved] = useState(false)
-  const [activeContestant, setActiveContestant] = useState('')
-  const [activeSubmissionId, setActiveSubmissionId] = useState('')
-  const [expandedSections, setExpandedSections] = useState({
-    submissions: true,
-    longGame: true,
-    leaderboard: true,
-  })
-  const [submissionSort, setSubmissionSort] = useState({ key: 'createdAtTimestamp', direction: 'desc' })
-  const [longGameSort, setLongGameSort] = useState({ key: 'roundNumber', direction: 'desc' })
-  const [leaderboardSort, setLeaderboardSort] = useState({ key: 'longGamePoints', direction: 'desc' })
-  const [notifyTitle, setNotifyTitle] = useState('')
-  const [notifyBody, setNotifyBody] = useState('')
-  const [isSendingNotification, setIsSendingNotification] = useState(false)
-  const [notifyResult, setNotifyResult] = useState('')
+  const { token, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [submissions, setSubmissions] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [longGameRounds, setLongGameRounds] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedContestant, setSelectedContestant] = useState('all');
+  const [taskFilter, setTaskFilter] = useState('all');
+  const [searchFilter, setSearchFilter] = useState('');
+  const [activeSubmissionId, setActiveSubmissionId] = useState('');
+  const [selectedLongGameRound, setSelectedLongGameRound] = useState(null);
 
   useEffect(() => {
-    let isMounted = true
-
+    let isMounted = true;
     async function loadJudgeDashboardData() {
-      setError('')
-      setIsLoading(true)
-
+      setError('');
+      setIsLoading(true);
       try {
         const [submissionsData, tasksData, longGameData, leaderboardData] = await Promise.all([
           fetchJudgeSubmissions(token),
           fetchJudgeTasks(token),
           fetchJudgeLongGameRounds(token),
           fetchJudgeLeaderboard(token),
-        ])
-
-        if (!isMounted) {
-          return
-        }
-
-        setSubmissions(submissionsData.submissions ?? [])
-        setTasks(tasksData.tasks ?? [])
-        setLongGameRounds(longGameData.rounds ?? [])
-        setLeaderboard(leaderboardData.leaderboard ?? [])
+        ]);
+        if (!isMounted) return;
+        setSubmissions(submissionsData.submissions ?? []);
+        setTasks(tasksData.tasks ?? []);
+        setLongGameRounds(longGameData.rounds ?? []);
+        setLeaderboard(leaderboardData.leaderboard ?? []);
       } catch (loadError) {
-        if (isMounted) {
-          setError(loadError.message)
-        }
+        if (isMounted) setError(loadError.message);
       } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
+        if (isMounted) setIsLoading(false);
       }
     }
-
-    loadJudgeDashboardData()
-
-    return () => {
-      isMounted = false
-    }
-  }, [token])
+    loadJudgeDashboardData();
+    return () => { isMounted = false; };
+  }, [token]);
 
   const flattenedMatchups = useMemo(
     () =>
       longGameRounds.flatMap((round) =>
         (round.matchups ?? []).map((matchup, matchupIndex) => {
-          const [playerA = '', playerB = ''] = matchup.players ?? []
-          const choiceA = matchup.choices?.[playerA] ?? null
-          const choiceB = matchup.choices?.[playerB] ?? null
-          const pointsA = matchup.points?.[playerA] ?? null
-          const pointsB = matchup.points?.[playerB] ?? null
-          const unresolved = choiceA === null || choiceB === null || pointsA === null || pointsB === null
-
+          const [playerA = '', playerB = ''] = matchup.players ?? [];
+          const choiceA = matchup.choices?.[playerA] ?? null;
+          const choiceB = matchup.choices?.[playerB] ?? null;
+          const pointsA = matchup.points?.[playerA] ?? null;
+          const pointsB = matchup.points?.[playerB] ?? null;
+          const unresolved = choiceA === null || choiceB === null || pointsA === null || pointsB === null;
           return {
             id: `${round.roundNumber}-${playerA}-${playerB}-${matchupIndex}`,
             roundNumber: round.roundNumber,
@@ -192,818 +83,245 @@ function JudgeDashboardPage() {
             pointsB,
             unresolved,
             matchupLabel: `${playerA} vs ${playerB}`,
-          }
-        }),
+          };
+        })
       ),
-    [longGameRounds],
-  )
+    [longGameRounds]
+  );
 
   const contestants = useMemo(() => {
     const allUsernames = new Set([
       ...submissions.map((submission) => submission.username),
       ...leaderboard.map((entry) => entry.username),
-    ])
-
-    return [...allUsernames].sort((first, second) => first.localeCompare(second))
-  }, [leaderboard, submissions])
+    ]);
+    return [...allUsernames].sort((first, second) => first.localeCompare(second));
+  }, [leaderboard, submissions]);
 
   const availableTaskNumbers = useMemo(() => {
-    const values = [...new Set(submissions.map((submission) => submission.taskNumber))]
-    return values.sort((first, second) => first - second)
-  }, [submissions])
+    const values = [...new Set(submissions.map((submission) => submission.taskNumber))];
+    return values.sort((first, second) => first - second);
+  }, [submissions]);
 
   const taskNameByNumber = useMemo(() => {
-    const lookup = new Map()
-
+    const lookup = new Map();
     for (const task of tasks) {
-      lookup.set(task.taskNumber, task.title)
+      lookup.set(task.taskNumber, task.title);
     }
+    return lookup;
+  }, [tasks]);
 
-    return lookup
-  }, [tasks])
+  const getTaskLabel = useCallback(
+    (taskNumber) => taskNameByNumber.get(taskNumber) ?? `Task ${taskNumber}`,
+    [taskNameByNumber]
+  );
 
-  function getTaskLabel(taskNumber) {
-    return taskNameByNumber.get(taskNumber) ?? `Task ${taskNumber}`
+  function getSubmissionMediaItems(submission) {
+    if (!submission) return [];
+    if (Array.isArray(submission.mediaItems)) return submission.mediaItems;
+    if (submission.mediaType && submission.mediaUrl) {
+      return [{ type: submission.mediaType, url: submission.mediaUrl, originalName: submission.mediaOriginalName }];
+    }
+    return [];
   }
 
-  const searchValue = searchFilter.trim().toLowerCase()
+  function getMediaUrl(url) {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    return `/media/${url}`;
+  }
+
+  const searchValue = searchFilter.trim().toLowerCase();
 
   const filteredSubmissions = useMemo(() => {
     return submissions.filter((submission) => {
-      if (selectedContestant !== 'all' && submission.username !== selectedContestant) {
-        return false
-      }
-
-      if (taskFilter !== 'all' && submission.taskNumber !== Number(taskFilter)) {
-        return false
-      }
-
-      if (!searchValue) {
-        return true
-      }
-
+      if (selectedContestant !== 'all' && submission.username !== selectedContestant) return false;
+      if (taskFilter !== 'all' && submission.taskNumber !== Number(taskFilter)) return false;
+      if (!searchValue) return true;
       const haystack = [
         submission.displayName,
         submission.username,
         getTaskLabel(submission.taskNumber),
         submission.textBody,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-
-      return haystack.includes(searchValue)
-    })
-  }, [searchValue, selectedContestant, submissions, taskFilter, taskNameByNumber])
+      ].filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(searchValue);
+    });
+  }, [searchValue, selectedContestant, submissions, taskFilter, getTaskLabel]);
 
   const filteredMatchups = useMemo(() => {
     return flattenedMatchups.filter((matchup) => {
-      if (selectedContestant !== 'all' && matchup.playerA !== selectedContestant && matchup.playerB !== selectedContestant) {
-        return false
-      }
-
-      if (onlyUnresolved && !matchup.unresolved) {
-        return false
-      }
-
-      if (!searchValue) {
-        return true
-      }
-
-      const haystack = `${matchup.roundNumber} ${matchup.matchupLabel} ${matchup.choiceA ?? ''} ${matchup.choiceB ?? ''}`.toLowerCase()
-      return haystack.includes(searchValue)
-    })
-  }, [flattenedMatchups, onlyUnresolved, searchValue, selectedContestant])
+      if (selectedContestant !== 'all' && matchup.playerA !== selectedContestant && matchup.playerB !== selectedContestant) return false;
+      if (!searchValue) return true;
+      const haystack = `${matchup.roundNumber} ${matchup.matchupLabel} ${matchup.choiceA ?? ''} ${matchup.choiceB ?? ''}`.toLowerCase();
+      return haystack.includes(searchValue);
+    });
+  }, [flattenedMatchups, searchValue, selectedContestant]);
 
   const filteredLeaderboard = useMemo(() => {
     return leaderboard.filter((entry) => {
-      if (selectedContestant !== 'all' && entry.username !== selectedContestant) {
-        return false
-      }
+      if (selectedContestant !== 'all' && entry.username !== selectedContestant) return false;
+      if (!searchValue) return true;
+      const haystack = `${entry.displayName} ${entry.username} ${entry.longGamePoints}`.toLowerCase();
+      return haystack.includes(searchValue);
+    });
+  }, [leaderboard, searchValue, selectedContestant]);
 
-      if (!searchValue) {
-        return true
-      }
-
-      const haystack = `${entry.displayName} ${entry.username} ${entry.longGamePoints}`.toLowerCase()
-      return haystack.includes(searchValue)
-    })
-  }, [leaderboard, searchValue, selectedContestant])
 
   const submissionRows = useMemo(
     () =>
-      sortRows(
-        filteredSubmissions.map((submission) => ({
-          ...submission,
-          mediaItems: getSubmissionMediaItems(submission),
-          createdAtTimestamp: new Date(submission.createdAt).getTime() || 0,
-          contestantLabel: `${submission.displayName} (@${submission.username})`,
-          hasMedia: (submission.mediaItems?.length ?? 0) > 0 || submission.mediaType ? 'Yes' : 'No',
-          taskLabel: getTaskLabel(submission.taskNumber),
-        })),
-        submissionSort,
-      ),
-    [filteredSubmissions, submissionSort, taskNameByNumber],
-  )
+      filteredSubmissions.map((submission) => ({
+        ...submission,
+        mediaItems: getSubmissionMediaItems(submission),
+        createdAtTimestamp: new Date(submission.createdAt).getTime() || 0,
+        contestantLabel: `${submission.displayName} (@${submission.username})`,
+        hasMedia: (submission.mediaItems?.length ?? 0) > 0 || submission.mediaType ? 'Yes' : 'No',
+        taskLabel: getTaskLabel(submission.taskNumber),
+      })),
+    [filteredSubmissions, getTaskLabel],
+  );
+
+  const currentRoundNumber = useMemo(() => {
+    if (!longGameRounds.length) return null;
+    const today = new Date();
+    let current = longGameRounds[0];
+    for (const round of longGameRounds) {
+      if (new Date(round.startDate) <= today && new Date(round.startDate) > new Date(current.startDate)) {
+        current = round;
+      }
+    }
+    return current.roundNumber;
+  }, [longGameRounds]);
+
+  const activeLongGameRound = selectedLongGameRound || currentRoundNumber;
 
   const longGameRows = useMemo(
     () =>
-      sortRows(
-        filteredMatchups.map((matchup) => ({
-          ...matchup,
-          unresolvedLabel: matchup.unresolved ? 'Unresolved' : 'Resolved',
-          totalPoints: (matchup.pointsA ?? 0) + (matchup.pointsB ?? 0),
-        })),
-        longGameSort,
-      ),
-    [filteredMatchups, longGameSort],
-  )
+      filteredMatchups
+        .filter((matchup) => matchup.roundNumber === activeLongGameRound)
+        .map((matchup) => {
+          // Compute result string and color for display
+          let result = '';
+          let resultColor = '';
+          const betrayA = (matchup.choiceA && matchup.choiceA.toLowerCase() === 'betray');
+          const betrayB = (matchup.choiceB && matchup.choiceB.toLowerCase() === 'betray');
+          const coopA = (matchup.choiceA && matchup.choiceA.toLowerCase() === 'cooperate');
+          const coopB = (matchup.choiceB && matchup.choiceB.toLowerCase() === 'cooperate');
+          if (matchup.unresolved) {
+            result = 'Pending';
+            resultColor = '';
+          } else if (betrayA && betrayB) {
+            result = 'Loss';
+            resultColor = 'red';
+          } else if (betrayA && coopB) {
+            const winnerA = matchup.playerA.charAt(0).toUpperCase() + matchup.playerA.slice(1);
+            result = `Winner (${winnerA})`;
+            resultColor = 'green';
+          } else if (coopA && betrayB) {
+            const winnerB = matchup.playerB.charAt(0).toUpperCase() + matchup.playerB.slice(1);
+            result = `Winner (${winnerB})`;
+            resultColor = 'green';
+          } else if (coopA && coopB) {
+            result = 'Cooperate';
+            resultColor = 'blue';
+          } else {
+            result = 'Pending';
+            resultColor = '';
+          }
+          return {
+            ...matchup,
+            unresolvedLabel: matchup.unresolved ? 'Unresolved' : 'Resolved',
+            totalPoints: (matchup.pointsA ?? 0) + (matchup.pointsB ?? 0),
+            result,
+            resultColor,
+          };
+        }),
+    [filteredMatchups, activeLongGameRound],
+  );
 
   const leaderboardRows = useMemo(
     () =>
-      sortRows(
-        filteredLeaderboard.map((entry) => ({
-          ...entry,
-          contestantLabel: `${entry.displayName} (@${entry.username})`,
-        })),
-        leaderboardSort,
-      ),
-    [filteredLeaderboard, leaderboardSort],
-  )
+      filteredLeaderboard.map((entry) => ({
+        ...entry,
+        contestantLabel: `${entry.displayName} (@${entry.username})`,
+      })),
+    [filteredLeaderboard],
+  );
 
-  const activeContestantData = useMemo(() => {
-    if (!activeContestant) {
-      return null
-    }
-
-    const entry = leaderboard.find((row) => row.username === activeContestant) ?? null
-    const contestantSubmissions = submissions.filter((submission) => submission.username === activeContestant)
-    const contestantMatchups = flattenedMatchups.filter(
-      (matchup) => matchup.playerA === activeContestant || matchup.playerB === activeContestant,
-    )
-
-    return {
-      entry,
-      submissions: contestantSubmissions,
-      matchups: contestantMatchups,
-    }
-  }, [activeContestant, flattenedMatchups, leaderboard, submissions])
-
-  const activeSubmission = useMemo(() => {
-    if (!activeContestantData || !activeSubmissionId) {
-      return null
-    }
-
-    return activeContestantData.submissions.find((submission) => submission.id === activeSubmissionId) ?? null
-  }, [activeContestantData, activeSubmissionId])
-
-  const highlightedSubmission = useMemo(() => {
-    if (!activeContestantData) {
-      return null
-    }
-
-    if (activeSubmission) {
-      return activeSubmission
-    }
-
-    const firstWithMedia = activeContestantData.submissions.find(
-      (submission) => getSubmissionMediaItems(submission).length > 0,
-    )
-
-    return firstWithMedia ?? activeContestantData.submissions[0] ?? null
-  }, [activeContestantData, activeSubmission])
-
-  function renderSortIndicator(config, columnKey) {
-    if (config.key !== columnKey) {
-      return '↕'
-    }
-
-    return config.direction === 'asc' ? '↑' : '↓'
-  }
-
-  function handleToggleSection(sectionKey) {
-    setExpandedSections((current) => ({
-      ...current,
-      [sectionKey]: !current[sectionKey],
-    }))
-  }
-
-  async function handleSendNotification(event) {
-    event.preventDefault()
-    if (!notifyTitle.trim() || !notifyBody.trim()) return
-    setIsSendingNotification(true)
-    setNotifyResult('')
-    try {
-      const result = await sendJudgePushNotification(token, {
-        title: notifyTitle.trim(),
-        body: notifyBody.trim(),
-      })
-      setNotifyResult(`Sent to ${result.sent} device(s).${result.failed > 0 ? ` ${result.failed} failed.` : ''}`)
-      setNotifyTitle('')
-      setNotifyBody('')
-    } catch (sendError) {
-      setNotifyResult(`Error: ${sendError.message}`)
-    } finally {
-      setIsSendingNotification(false)
-    }
+  async function markSubmissionDone(token, submissionId, done) {
+    await apiMarkSubmissionDone(token, submissionId, done);
   }
 
   return (
     <main className="app-shell">
       <section className="judge-dashboard-layout">
-        <div className="title-block">
-          <h1>Mikaela's Dashboard</h1>
-          <p>
-            Submissions: <strong>{submissionRows.length}</strong> / {submissions.length} | Matchups:{' '}
-            <strong>{longGameRows.length}</strong> / {flattenedMatchups.length} | Leaderboard entries:{' '}
-            <strong>{leaderboardRows.length}</strong> / {leaderboard.length}
-          </p>
-        </div>
-
-        {error ? <div className="error-banner">{error}</div> : null}
-
-        <div className="task-meta-card judge-filter-bar">
-          <div className="field">
-            <label htmlFor="judge-filter-contestant">Contestant</label>
-            <select
-              id="judge-filter-contestant"
-              value={selectedContestant}
-              onChange={(event) => setSelectedContestant(event.target.value)}
-            >
-              <option value="all">All contestants</option>
-              {contestants.map((username) => (
-                <option key={username} value={username}>
-                  {username}
-                </option>
-              ))}
-            </select>
+        <div style={{ position: 'relative', minHeight: 56 }}>
+          <div className="title-block" style={{ marginRight: 60 }}>
+            <h1>Mikaela's Dashboard</h1>
+            <p>
+              New submissions: <strong>{submissionRows.filter(s => !s.done).length}</strong>
+            </p>
           </div>
-
-          <div className="field">
-            <label htmlFor="judge-filter-task">Task</label>
-            <select id="judge-filter-task" value={taskFilter} onChange={(event) => setTaskFilter(event.target.value)}>
-              <option value="all">All tasks</option>
-              {availableTaskNumbers.map((taskNumber) => (
-                <option key={taskNumber} value={String(taskNumber)}>
-                  {getTaskLabel(taskNumber)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="field">
-            <label htmlFor="judge-filter-search">Search</label>
-            <input
-              id="judge-filter-search"
-              value={searchFilter}
-              onChange={(event) => setSearchFilter(event.target.value)}
-              placeholder="Search names, text, round, task"
-            />
-          </div>
-
-          <label className="judge-toggle">
-            <input
-              type="checkbox"
-              checked={onlyUnresolved}
-              onChange={(event) => setOnlyUnresolved(event.target.checked)}
-            />
-            <span>Only unresolved Long Game rows</span>
-          </label>
-        </div>
-
-        <article className="task-meta-card">
-          <div className="judge-section-header">
-            <h2>Send Push Notification</h2>
-          </div>
-          <form className="auth-form" onSubmit={handleSendNotification}>
-            <div className="field">
-              <label htmlFor="notify-title">Title</label>
-              <input
-                id="notify-title"
-                value={notifyTitle}
-                onChange={(event) => setNotifyTitle(event.target.value)}
-                placeholder="e.g. New Task!"
-                required
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="notify-body">Message</label>
-              <input
-                id="notify-body"
-                value={notifyBody}
-                onChange={(event) => setNotifyBody(event.target.value)}
-                placeholder="e.g. A new task has been added. Check the app!"
-                required
-              />
-            </div>
-            {notifyResult ? <p className="muted">{notifyResult}</p> : null}
-            <button className="button" type="submit" disabled={isSendingNotification}>
-              {isSendingNotification ? 'Sending…' : 'Send to all contestants'}
-            </button>
-          </form>
-        </article>
-
-        <div className="judge-dashboard-grid">
-          <article className="task-meta-card judge-dashboard-card">
-            <div className="judge-section-header">
-              <h2>All Submissions</h2>
-              <button className="button-ghost judge-collapse-toggle" type="button" onClick={() => handleToggleSection('submissions')}>
-                {expandedSections.submissions ? 'Collapse' : 'Expand'}
-              </button>
-            </div>
-            {expandedSections.submissions && isLoading ? <p className="muted">Loading submissions...</p> : null}
-            {expandedSections.submissions && !isLoading ? (
-              <div className="judge-table-wrap">
-                {submissionRows.length === 0 ? (
-                  <p className="muted">No submissions found.</p>
-                ) : (
-                  <table className="judge-table">
-                    <thead>
-                      <tr>
-                        <th>
-                          <button
-                            className="judge-sort-button"
-                            type="button"
-                            onClick={() =>
-                              setSubmissionSort((current) => ({
-                                key: 'createdAtTimestamp',
-                                direction: getNextDirection(current.key, current.direction, 'createdAtTimestamp'),
-                              }))
-                            }
-                          >
-                            Submitted {renderSortIndicator(submissionSort, 'createdAtTimestamp')}
-                          </button>
-                        </th>
-                        <th>
-                          <button
-                            className="judge-sort-button"
-                            type="button"
-                            onClick={() =>
-                              setSubmissionSort((current) => ({
-                                key: 'contestantLabel',
-                                direction: getNextDirection(current.key, current.direction, 'contestantLabel'),
-                              }))
-                            }
-                          >
-                            Contestant {renderSortIndicator(submissionSort, 'contestantLabel')}
-                          </button>
-                        </th>
-                        <th>
-                          <button
-                            className="judge-sort-button"
-                            type="button"
-                            onClick={() =>
-                              setSubmissionSort((current) => ({
-                                key: 'taskNumber',
-                                direction: getNextDirection(current.key, current.direction, 'taskNumber'),
-                              }))
-                            }
-                          >
-                            Task {renderSortIndicator(submissionSort, 'taskNumber')}
-                          </button>
-                        </th>
-                        <th>Media</th>
-                        <th>Text</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {submissionRows.map((submission) => (
-                        <tr key={submission.id}>
-                          <td>{formatDateTime(submission.createdAt)}</td>
-                          <td>
-                            <button
-                              type="button"
-                              className="judge-link-button"
-                              onClick={() => {
-                                setActiveContestant(submission.username)
-                                setActiveSubmissionId(submission.id)
-                              }}
-                            >
-                              #{submission.contestantNumber} {submission.displayName}
-                            </button>
-                          </td>
-                          <td>{submission.taskLabel}</td>
-                          <td>
-                            {submission.mediaItems.length === 0 ? (
-                              <span>{submission.hasMedia}</span>
-                            ) : (
-                              <div className="judge-media-grid">
-                                {submission.mediaItems.map((mediaItem, mediaIndex) =>
-                                  mediaItem.type === 'video' ? (
-                                    <a
-                                      key={`${submission.id}-video-link-${mediaIndex}`}
-                                      className="judge-media-link"
-                                      href={getMediaUrl(mediaItem.url)}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      aria-label={`Open video ${mediaIndex + 1} in a new tab`}
-                                    >
-                                      <video className="judge-media-preview" src={getMediaUrl(mediaItem.url)} controls preload="metadata" />
-                                    </a>
-                                  ) : (
-                                    <a
-                                      key={`${submission.id}-image-link-${mediaIndex}`}
-                                      className="judge-media-link"
-                                      href={getMediaUrl(mediaItem.url)}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      aria-label={`Open image ${mediaIndex + 1} in a new tab`}
-                                    >
-                                      <img
-                                        className="judge-media-preview"
-                                        src={getMediaUrl(mediaItem.url)}
-                                        alt={mediaItem.originalName || `Submission media ${mediaIndex + 1}`}
-                                        loading="lazy"
-                                      />
-                                    </a>
-                                  ),
-                                )}
-                              </div>
-                            )}
-                          </td>
-                          <td>{submission.textBody || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            ) : null}
-          </article>
-
-          <article className="task-meta-card judge-dashboard-card">
-            <div className="judge-section-header">
-              <h2>Long Game Overview</h2>
-              <button className="button-ghost judge-collapse-toggle" type="button" onClick={() => handleToggleSection('longGame')}>
-                {expandedSections.longGame ? 'Collapse' : 'Expand'}
-              </button>
-            </div>
-            {expandedSections.longGame && isLoading ? <p className="muted">Loading long game rounds...</p> : null}
-            {expandedSections.longGame && !isLoading ? (
-              <div className="judge-table-wrap">
-                {longGameRows.length === 0 ? (
-                  <p className="muted">No long game choices found.</p>
-                ) : (
-                  <table className="judge-table">
-                    <thead>
-                      <tr>
-                        <th>
-                          <button
-                            className="judge-sort-button"
-                            type="button"
-                            onClick={() =>
-                              setLongGameSort((current) => ({
-                                key: 'roundNumber',
-                                direction: getNextDirection(current.key, current.direction, 'roundNumber'),
-                              }))
-                            }
-                          >
-                            Round {renderSortIndicator(longGameSort, 'roundNumber')}
-                          </button>
-                        </th>
-                        <th>Matchup</th>
-                        <th>Player A</th>
-                        <th>Player B</th>
-                        <th>
-                          <button
-                            className="judge-sort-button"
-                            type="button"
-                            onClick={() =>
-                              setLongGameSort((current) => ({
-                                key: 'totalPoints',
-                                direction: getNextDirection(current.key, current.direction, 'totalPoints'),
-                              }))
-                            }
-                          >
-                            Total pts {renderSortIndicator(longGameSort, 'totalPoints')}
-                          </button>
-                        </th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {longGameRows.map((matchup) => (
-                        <tr key={matchup.id} className={matchup.unresolved ? 'judge-row-unresolved' : ''}>
-                          <td>{matchup.roundNumber}</td>
-                          <td>{matchup.matchupLabel}</td>
-                          <td>
-                            <button
-                              type="button"
-                              className="judge-link-button"
-                              onClick={() => {
-                                setActiveContestant(matchup.playerA)
-                                setActiveSubmissionId('')
-                              }}
-                            >
-                              {matchup.playerA}
-                            </button>
-                            <div>{formatChoiceWithPoints(matchup.choiceA, matchup.pointsA)}</div>
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="judge-link-button"
-                              onClick={() => {
-                                setActiveContestant(matchup.playerB)
-                                setActiveSubmissionId('')
-                              }}
-                            >
-                              {matchup.playerB}
-                            </button>
-                            <div>{formatChoiceWithPoints(matchup.choiceB, matchup.pointsB)}</div>
-                          </td>
-                          <td>{matchup.totalPoints}</td>
-                          <td>{matchup.unresolvedLabel}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            ) : null}
-          </article>
-
-          <article className="task-meta-card judge-dashboard-card">
-            <div className="judge-section-header">
-              <h2>Leaderboard</h2>
-              <button className="button-ghost judge-collapse-toggle" type="button" onClick={() => handleToggleSection('leaderboard')}>
-                {expandedSections.leaderboard ? 'Collapse' : 'Expand'}
-              </button>
-            </div>
-            {expandedSections.leaderboard && isLoading ? <p className="muted">Loading leaderboard...</p> : null}
-            {expandedSections.leaderboard && !isLoading ? (
-              <div className="judge-table-wrap">
-                {leaderboardRows.length === 0 ? (
-                  <p className="muted">No leaderboard entries found.</p>
-                ) : (
-                  <table className="judge-table">
-                    <thead>
-                      <tr>
-                        <th>
-                          <button
-                            className="judge-sort-button"
-                            type="button"
-                            onClick={() =>
-                              setLeaderboardSort((current) => ({
-                                key: 'rank',
-                                direction: getNextDirection(current.key, current.direction, 'rank'),
-                              }))
-                            }
-                          >
-                            Rank {renderSortIndicator(leaderboardSort, 'rank')}
-                          </button>
-                        </th>
-                        <th>
-                          <button
-                            className="judge-sort-button"
-                            type="button"
-                            onClick={() =>
-                              setLeaderboardSort((current) => ({
-                                key: 'contestantLabel',
-                                direction: getNextDirection(current.key, current.direction, 'contestantLabel'),
-                              }))
-                            }
-                          >
-                            Contestant {renderSortIndicator(leaderboardSort, 'contestantLabel')}
-                          </button>
-                        </th>
-                        <th>
-                          <button
-                            className="judge-sort-button"
-                            type="button"
-                            onClick={() =>
-                              setLeaderboardSort((current) => ({
-                                key: 'longGamePoints',
-                                direction: getNextDirection(current.key, current.direction, 'longGamePoints'),
-                              }))
-                            }
-                          >
-                            Points {renderSortIndicator(leaderboardSort, 'longGamePoints')}
-                          </button>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {leaderboardRows.map((entry) => (
-                        <tr key={entry.username}>
-                          <td>{entry.rank}</td>
-                          <td>
-                            <button
-                              type="button"
-                              className="judge-link-button"
-                              onClick={() => {
-                                setActiveContestant(entry.username)
-                                setActiveSubmissionId('')
-                              }}
-                            >
-                              {entry.displayName} (@{entry.username})
-                            </button>
-                          </td>
-                          <td>{entry.longGamePoints}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            ) : null}
-          </article>
-        </div>
-
-        <div className="button-row" style={{ justifyContent: 'flex-end' }}>
-          <button className="button-ghost" type="button" onClick={signOut}>
+          <button
+            className="button-ghost"
+            type="button"
+            onClick={signOut}
+            style={{ position: 'absolute', top: 0, right: 0, zIndex: 10, minWidth: 90 }}
+          >
             Sign out
           </button>
         </div>
+        {error ? <div className="error-banner">{error}</div> : null}
+        <NotificationPanel
+          contestants={contestants}
+          token={token}
+        />
+        <FilterBar
+          contestants={contestants}
+          selectedContestant={selectedContestant}
+          setSelectedContestant={setSelectedContestant}
+          availableTaskNumbers={availableTaskNumbers}
+          taskFilter={taskFilter}
+          setTaskFilter={setTaskFilter}
+          searchFilter={searchFilter}
+          setSearchFilter={setSearchFilter}
+        />
+        <div className="judge-dashboard-grid">
+          <SubmissionsTable
+            submissionRows={submissionRows}
+            isLoading={isLoading}
+            navigate={navigate}
+            setActiveSubmissionId={setActiveSubmissionId}
+          />
+          <LongGameOverview
+            longGameRows={longGameRows}
+            isLoading={isLoading}
+            longGameRounds={longGameRounds}
+            currentRoundNumber={currentRoundNumber}
+            selectedLongGameRound={selectedLongGameRound}
+            setSelectedLongGameRound={setSelectedLongGameRound}
+            navigate={navigate}
+          />
+          <LeaderboardTable
+            leaderboardRows={leaderboardRows}
+            isLoading={isLoading}
+            navigate={navigate}
+          />
+        </div>
 
-        {activeContestantData ? (
-          <div
-            className="judge-side-panel-backdrop"
-            role="presentation"
-            onClick={() => {
-              setActiveContestant('')
-              setActiveSubmissionId('')
-            }}
-          >
-            <aside className="judge-side-panel" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
-              <div className="panel-header">
-                <div>
-                  <h2>
-                    {activeContestantData.entry?.displayName ?? activeContestant} (@
-                    {activeContestantData.entry?.username ?? activeContestant})
-                  </h2>
-                  <p className="muted">
-                    Rank #{activeContestantData.entry?.rank ?? '-'} | Long Game points:{' '}
-                    {activeContestantData.entry?.longGamePoints ?? 0}
-                  </p>
-                </div>
-                <button
-                  className="button-ghost"
-                  type="button"
-                  onClick={() => {
-                    setActiveContestant('')
-                    setActiveSubmissionId('')
-                  }}
-                >
-                  Close
-                </button>
-              </div>
-
-              {highlightedSubmission ? (
-                <div className="judge-side-panel-section">
-                  <h3>Selected submission</h3>
-                  <div className="judge-scroll-area">
-                    <article className="judge-list-item">
-                      <strong>{getTaskLabel(highlightedSubmission.taskNumber)}</strong>
-                      <span>{formatDateTime(highlightedSubmission.createdAt)}</span>
-                      <span>{highlightedSubmission.textBody || '-'}</span>
-                      {getSubmissionMediaItems(highlightedSubmission).length > 0 ? (
-                        <div className="judge-media-grid judge-media-grid--panel judge-media-grid--featured">
-                          {getSubmissionMediaItems(highlightedSubmission).map((mediaItem, mediaIndex) =>
-                            mediaItem.type === 'video' ? (
-                              <a
-                                key={`${highlightedSubmission.id}-featured-video-link-${mediaIndex}`}
-                                className="judge-media-link"
-                                href={getMediaUrl(mediaItem.url)}
-                                target="_blank"
-                                rel="noreferrer"
-                                aria-label={`Open selected video ${mediaIndex + 1} in a new tab`}
-                              >
-                                <video
-                                  className="judge-media-preview judge-media-preview--featured"
-                                  src={getMediaUrl(mediaItem.url)}
-                                  controls
-                                  preload="metadata"
-                                />
-                              </a>
-                            ) : (
-                              <a
-                                key={`${highlightedSubmission.id}-featured-image-link-${mediaIndex}`}
-                                className="judge-media-link"
-                                href={getMediaUrl(mediaItem.url)}
-                                target="_blank"
-                                rel="noreferrer"
-                                aria-label={`Open selected image ${mediaIndex + 1} in a new tab`}
-                              >
-                                <img
-                                  className="judge-media-preview judge-media-preview--featured"
-                                  src={getMediaUrl(mediaItem.url)}
-                                  alt={mediaItem.originalName || `Submission media ${mediaIndex + 1}`}
-                                  loading="lazy"
-                                />
-                              </a>
-                            ),
-                          )}
-                        </div>
-                      ) : (
-                        <span className="muted">No media attached.</span>
-                      )}
-                    </article>
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="judge-side-panel-section">
-                <h3>Recent submissions ({activeContestantData.submissions.length})</h3>
-                <div className="judge-scroll-area">
-                  {activeContestantData.submissions.length === 0 ? (
-                    <p className="muted">No submissions found.</p>
-                  ) : (
-                    <ul className="judge-list">
-                      {activeContestantData.submissions.slice(0, 20).map((submission) => (
-                        <li
-                          key={submission.id}
-                          className="judge-list-item"
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => setActiveSubmissionId(submission.id)}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault()
-                              setActiveSubmissionId(submission.id)
-                            }
-                          }}
-                        >
-                          <strong>{getTaskLabel(submission.taskNumber)}</strong>
-                          <span>{formatDateTime(submission.createdAt)}</span>
-                          <span>{submission.textBody || '-'}</span>
-                          {getSubmissionMediaItems(submission).length > 0 ? (
-                            <div className="judge-media-grid judge-media-grid--panel">
-                              {getSubmissionMediaItems(submission).map((mediaItem, mediaIndex) =>
-                                mediaItem.type === 'video' ? (
-                                  <a
-                                    key={`${submission.id}-panel-video-link-${mediaIndex}`}
-                                    className="judge-media-link"
-                                    href={getMediaUrl(mediaItem.url)}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    aria-label={`Open contestant video ${mediaIndex + 1} in a new tab`}
-                                  >
-                                    <video
-                                      className="judge-media-preview"
-                                      src={getMediaUrl(mediaItem.url)}
-                                      controls
-                                      preload="metadata"
-                                    />
-                                  </a>
-                                ) : (
-                                  <a
-                                    key={`${submission.id}-panel-image-link-${mediaIndex}`}
-                                    className="judge-media-link"
-                                    href={getMediaUrl(mediaItem.url)}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    aria-label={`Open contestant image ${mediaIndex + 1} in a new tab`}
-                                  >
-                                    <img
-                                      className="judge-media-preview"
-                                      src={getMediaUrl(mediaItem.url)}
-                                      alt={mediaItem.originalName || `Submission media ${mediaIndex + 1}`}
-                                      loading="lazy"
-                                    />
-                                  </a>
-                                ),
-                              )}
-                            </div>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-
-              <div className="judge-side-panel-section">
-                <h3>Long Game history ({activeContestantData.matchups.length})</h3>
-                <div className="judge-scroll-area">
-                  {activeContestantData.matchups.length === 0 ? (
-                    <p className="muted">No rounds found.</p>
-                  ) : (
-                    <ul className="judge-list">
-                      {activeContestantData.matchups.map((matchup) => {
-                        const isPlayerA = matchup.playerA === activeContestant
-                        const ownChoice = isPlayerA ? matchup.choiceA : matchup.choiceB
-                        const ownPoints = isPlayerA ? matchup.pointsA : matchup.pointsB
-                        const opponent = isPlayerA ? matchup.playerB : matchup.playerA
-
-                        return (
-                          <li key={matchup.id} className={`judge-list-item${matchup.unresolved ? ' judge-row-unresolved' : ''}`}>
-                            <strong>Round {matchup.roundNumber}</strong>
-                            <span>Opponent: {opponent}</span>
-                            <span>Your result: {formatChoiceWithPoints(ownChoice, ownPoints)}</span>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  )}
-                </div>
-              </div>
-            </aside>
-          </div>
-        ) : null}
+        <SubmissionSidePanel
+          activeSubmissionId={activeSubmissionId}
+          setActiveSubmissionId={setActiveSubmissionId}
+          submissionRows={submissionRows}
+          submissions={submissions}
+          getTaskLabel={getTaskLabel}
+          getSubmissionMediaItems={getSubmissionMediaItems}
+          getMediaUrl={getMediaUrl}
+          markSubmissionDone={markSubmissionDone}
+          token={token}
+          setSubmissions={setSubmissions}
+        />
       </section>
     </main>
-  )
+  );
 }
 
-export default JudgeDashboardPage
+export default JudgeDashboardPage;

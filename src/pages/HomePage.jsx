@@ -483,7 +483,10 @@ function HomePage() {
     welcome: 'Welcome',
     welcomeBack: 'Welcome back',
     heroSubtitle: 'Track your progress and keep an eye on the countdown.',
-    tasksCompleted: `${completedTaskNumbers.length} tasks completed`,
+    tasksCompleted:
+      completedTaskNumbers.length === 1
+        ? '1 task complete'
+        : `${completedTaskNumbers.length} tasks completed`,
     submit: 'Submit',
     completedTasks: 'Completed tasks',
     completedTasksHint: 'Tick off the tasks you’ve completed.',

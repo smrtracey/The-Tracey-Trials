@@ -34,6 +34,10 @@ const longGameDecisionSchema = new mongoose.Schema(
       enum: ['cooperate', 'betray'],
       required: true,
     },
+    autoCooperate: {
+      type: Boolean,
+      default: false,
+    },
     awardedPoints: {
       type: Number,
       min: 0,

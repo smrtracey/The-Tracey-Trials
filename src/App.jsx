@@ -6,6 +6,7 @@ import ChangePasswordPage from './pages/ChangePasswordPage'
 import HomePage from './pages/HomePage'
 import JudgeDashboardPage from './pages/JudgeDashboardPage'
 import LoginPage from './pages/LoginPage'
+import PlayerDetailsPage from './pages/PlayerDetailsPage'
 import TaskDetailsPage from './pages/TaskDetailsPage'
 
 function App() {
@@ -34,6 +35,14 @@ function App() {
           element={
             <ProtectedRoute requirePasswordUpdated allowedRoles={['judge']}>
               <JudgeDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/judge/player/:username"
+          element={
+            <ProtectedRoute requirePasswordUpdated allowedRoles={['judge']}>
+              <PlayerDetailsPage />
             </ProtectedRoute>
           }
         />

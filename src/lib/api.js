@@ -1,3 +1,14 @@
+// Mark a submission as done/undone (judge only)
+export async function markSubmissionDone(token, submissionId, done) {
+  return request(`/api/judge/submissions/${submissionId}/done`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ done }),
+  })
+}
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
 async function request(path, options = {}) {
@@ -202,13 +213,43 @@ export async function deletePushSubscription(token, endpoint) {
   })
 }
 
-export async function sendJudgePushNotification(token, { title, body }) {
+// Now supports recipients array
+export async function sendJudgePushNotification(token, { title, body, recipients }) {
   return request('/api/judge/push/send', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ title, body }),
+    body: JSON.stringify({ title, body, recipients }),
+  })
+}
+
+// Notification Schema API
+export async function fetchNotificationSchemas(token) {
+  return request('/api/judge/notification-schemas', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export async function saveNotificationSchema(token, { name, notifications }) {
+  return request('/api/judge/notification-schemas', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ name, notifications }),
+  })
+}
+
+export async function deleteNotificationSchema(token, name) {
+  return request(`/api/judge/notification-schemas/${encodeURIComponent(name)}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   })
 }

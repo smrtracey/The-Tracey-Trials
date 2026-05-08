@@ -6,6 +6,7 @@ import { Submission } from '../models/Submission.js'
 import { Task } from '../models/Task.js'
 import { User } from '../models/User.js'
 import { sendPushToAll } from '../services/pushService.js'
+import { NotificationSchemaModel } from '../models/NotificationSchema.js'
 
 const judgeRoutes = Router()
 
@@ -45,6 +46,28 @@ judgeRoutes.get('/submissions', async (_request, response, next) => {
   }
 })
 
+// PATCH /api/judge/submissions/:id/done - mark submission as done/undone
+judgeRoutes.patch('/submissions/:id/done', async (request, response, next) => {
+  try {
+    const { id } = request.params
+    const { done } = request.body
+    if (typeof done !== 'boolean') {
+      return response.status(400).json({ message: 'Missing or invalid done value.' })
+    }
+    const submission = await Submission.findByIdAndUpdate(
+      id,
+      { done },
+      { new: true }
+    ).populate('user')
+    if (!submission) {
+      return response.status(404).json({ message: 'Submission not found.' })
+    }
+    return response.json({ submission: Submission.toClient(submission) })
+  } catch (error) {
+    return next(error)
+  }
+})
+
 judgeRoutes.get('/tasks', async (_request, response, next) => {
   try {
     const tasks = await Task.find({ isActive: true })
@@ -63,7 +86,7 @@ judgeRoutes.get('/tasks', async (_request, response, next) => {
 judgeRoutes.get('/long-game/rounds', async (_request, response, next) => {
   try {
     const allDecisions = await LongGameDecision.find()
-      .select('roundNumber username opponentUsername matchupKey choice awardedPoints')
+      .select('roundNumber username opponentUsername matchupKey choice awardedPoints autoCooperate')
       .sort({ roundNumber: 1, createdAt: 1 })
       .lean()
 
@@ -124,12 +147,17 @@ judgeRoutes.get('/long-game/rounds', async (_request, response, next) => {
               [normalizedUsername]: null,
               [normalizedOpponent]: null,
             },
+            autoCooperate: {},
           })
         }
 
         const matchup = matchupsByKey.get(key)
         matchup.choices[normalizedUsername] = decision.choice
         matchup.points[normalizedUsername] = decision.awardedPoints ?? null
+        if (decision.autoCooperate) {
+          if (!matchup.autoCooperate) matchup.autoCooperate = {}
+          matchup.autoCooperate[normalizedUsername] = true
+        }
       }
 
       return {
@@ -222,6 +250,48 @@ judgeRoutes.post('/push/send', async (request, response, next) => {
     return response.json(result)
   } catch (error) {
     return next(error)
+  }
+})
+
+// Notification Schema CRUD
+// Get all schemas for this judge
+judgeRoutes.get('/notification-schemas', async (request, response, next) => {
+  try {
+    const schemas = await NotificationSchemaModel.find({ createdBy: request.user._id })
+      .sort({ createdAt: -1 })
+      .lean();
+    response.json({ schemas });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Create or update a schema
+judgeRoutes.post('/notification-schemas', async (request, response, next) => {
+  try {
+    const { name, notifications } = request.body;
+    if (!name || !Array.isArray(notifications)) {
+      return response.status(400).json({ message: 'Name and notifications are required.' });
+    }
+    let schema = await NotificationSchemaModel.findOneAndUpdate(
+      { name, createdBy: request.user._id },
+      { name, notifications, createdBy: request.user._id },
+      { new: true, upsert: true }
+    );
+    response.json({ schema });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete a schema
+judgeRoutes.delete('/notification-schemas/:name', async (request, response, next) => {
+  try {
+    const { name } = request.params;
+    await NotificationSchemaModel.deleteOne({ name, createdBy: request.user._id });
+    response.json({ success: true });
+  } catch (error) {
+    next(error);
   }
 })
 

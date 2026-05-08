@@ -82,6 +82,10 @@ const submissionSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    done: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
@@ -103,6 +107,7 @@ submissionSchema.statics.toClient = function toClient(submission) {
     username: submission.user.username,
     displayName: submission.user.displayName,
     contestantNumber: submission.user.contestantNumber,
+    done: submission.done ?? false,
   }
 }
 

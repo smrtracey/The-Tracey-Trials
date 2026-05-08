@@ -189,22 +189,65 @@ async function seedLateStageData() {
 
   const longGameDocs = []
 
-  for (const round of longGameSchedule) {
-    const resolvedAt = new Date(`${round.endDate}T21:30:00.000Z`)
+  // Seed the first four matchups with explicit results: Pending, Win, Cooperate, LOSS
+  const explicitResults = [
+    // [roundNumber, playerA, playerB, choiceA, choiceB]
+    [1, 'tau', 'paul', 'cooperate', null], // Pending
+    [1, 'maria', 'danny', 'betray', 'cooperate'], // Win (Maria)
+    [1, 'marika', 'pierce', 'cooperate', 'cooperate'], // Cooperate
+    [1, 'adriana', 'will', 'betray', 'betray'], // LOSS
+  ];
+  for (const [roundNumber, playerA, playerB, choiceA, choiceB] of explicitResults) {
+    const round = longGameSchedule.find(r => r.roundNumber === roundNumber);
+    const resolvedAt = new Date(`${round.endDate}T21:30:00.000Z`);
+    const userA = usersByUsername.get(playerA);
+    const userB = usersByUsername.get(playerB);
+    if (!userA || !userB) continue;
+    const matchupKey = getMatchupKey(roundNumber, playerA, playerB);
+    const { pointsA, pointsB } = getLongGamePointsForChoices(choiceA, choiceB);
+    if (choiceA) {
+      longGameDocs.push({
+        user: userA._id,
+        roundNumber,
+        username: playerA,
+        opponentUsername: playerB,
+        matchupKey,
+        choice: choiceA,
+        awardedPoints: typeof pointsA === 'number' ? pointsA : null,
+        resolvedAt,
+        createdAt: new Date(`${round.endDate}T20:10:00.000Z`),
+        updatedAt: resolvedAt,
+      });
+    }
+    if (choiceB) {
+      longGameDocs.push({
+        user: userB._id,
+        roundNumber,
+        username: playerB,
+        opponentUsername: playerA,
+        matchupKey,
+        choice: choiceB,
+        awardedPoints: typeof pointsB === 'number' ? pointsB : null,
+        resolvedAt,
+        createdAt: new Date(`${round.endDate}T20:20:00.000Z`),
+        updatedAt: resolvedAt,
+      });
+    }
+  }
 
+  // Seed the rest of the first 4 rounds as before, skipping the above matchups
+  for (const round of longGameSchedule.filter(r => r.roundNumber <= 4)) {
+    const resolvedAt = new Date(`${round.endDate}T21:30:00.000Z`);
     for (const [playerA, playerB] of round.matchups) {
-      const userA = usersByUsername.get(playerA)
-      const userB = usersByUsername.get(playerB)
-
-      if (!userA || !userB) {
-        continue
-      }
-
-      const choiceA = getDeterministicChoice(hashString(`${round.roundNumber}:${playerA}:${playerB}`))
-      const choiceB = getDeterministicChoice(hashString(`${round.roundNumber}:${playerB}:${playerA}`))
-      const { pointsA, pointsB } = getLongGamePointsForChoices(choiceA, choiceB)
-      const matchupKey = getMatchupKey(round.roundNumber, playerA, playerB)
-
+      // Skip if this matchup was already seeded explicitly
+      if (explicitResults.some(([rn, a, b]) => rn === round.roundNumber && ((a === playerA && b === playerB) || (a === playerB && b === playerA)))) continue;
+      const userA = usersByUsername.get(playerA);
+      const userB = usersByUsername.get(playerB);
+      if (!userA || !userB) continue;
+      const choiceA = getDeterministicChoice(hashString(`${round.roundNumber}:${playerA}:${playerB}`));
+      const choiceB = getDeterministicChoice(hashString(`${round.roundNumber}:${playerB}:${playerA}`));
+      const { pointsA, pointsB } = getLongGamePointsForChoices(choiceA, choiceB);
+      const matchupKey = getMatchupKey(round.roundNumber, playerA, playerB);
       longGameDocs.push(
         {
           user: userA._id,
@@ -230,7 +273,7 @@ async function seedLateStageData() {
           createdAt: new Date(`${round.endDate}T20:20:00.000Z`),
           updatedAt: resolvedAt,
         },
-      )
+      );
     }
   }
 

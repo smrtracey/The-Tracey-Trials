@@ -103,6 +103,7 @@ submissionSchema.statics.toClient = function toClient(submission) {
     mediaItems,
     mediaUrl: mediaItems[0]?.url ?? null,
     mediaType: mediaItems[0]?.type ?? null,
+    originalName: mediaItems[0]?.originalName ?? null,
     createdAt: submission.createdAt,
     username: submission.user.username,
     displayName: submission.user.displayName,

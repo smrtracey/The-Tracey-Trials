@@ -19,6 +19,8 @@ import {
   markSubmissionDone as apiMarkSubmissionDone,
 } from '../lib/api';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+
 function JudgeDashboardPage() {
   const { token, signOut } = useAuth();
   const navigate = useNavigate();
@@ -120,7 +122,7 @@ function JudgeDashboardPage() {
     if (!submission) return [];
     if (Array.isArray(submission.mediaItems)) return submission.mediaItems;
     if (submission.mediaType && submission.mediaUrl) {
-      return [{ type: submission.mediaType, url: submission.mediaUrl, originalName: submission.mediaOriginalName }];
+      return [{ type: submission.mediaType, url: submission.mediaUrl, originalName: submission.originalName }];
     }
     return [];
   }
@@ -128,7 +130,8 @@ function JudgeDashboardPage() {
   function getMediaUrl(url) {
     if (!url) return '';
     if (url.startsWith('http')) return url;
-    return `/media/${url}`;
+    if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
+    return `${API_BASE_URL}/${url}`;
   }
 
   const searchValue = searchFilter.trim().toLowerCase();

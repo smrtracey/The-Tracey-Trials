@@ -144,6 +144,25 @@ export async function fetchLongGameStatus(token) {
   })
 }
 
+export async function fetchFundRequests(token) {
+  return request('/api/funds', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export async function createFundRequest(token, amount) {
+  return request('/api/funds', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ amount }),
+  })
+}
+
 export async function saveLongGameChoice(token, choice) {
   return request('/api/tasks/long-game/choice', {
     method: 'POST',
@@ -184,6 +203,25 @@ export async function fetchJudgeLeaderboard(token) {
     headers: {
       Authorization: `Bearer ${token}`,
     },
+  })
+}
+
+export async function fetchJudgeFundRequests(token) {
+  return request('/api/judge/funds', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export async function updateJudgeFundRequestStatus(token, requestId, status) {
+  return request(`/api/judge/funds/${requestId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ status }),
   })
 }
 

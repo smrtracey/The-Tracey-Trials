@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { longGameSchedule } from '../data/longGameSchedule.js'
 import { requireAuth } from '../middleware/auth.js'
+import { FundRequest } from '../models/FundRequest.js'
 import { LongGameDecision } from '../models/LongGameDecision.js'
 import { Submission } from '../models/Submission.js'
 import { Task } from '../models/Task.js'
@@ -178,7 +179,7 @@ judgeRoutes.get('/long-game/rounds', async (_request, response, next) => {
 judgeRoutes.get('/leaderboard', async (_request, response, next) => {
   try {
     const contestants = await User.find({ role: 'contestant' })
-      .select('username displayName contestantNumber')
+      .select('username displayName contestantNumber completedTaskNumbers loginBonusPoints loginBonusRank')
       .sort({ contestantNumber: 1 })
       .lean()
 
@@ -203,7 +204,10 @@ judgeRoutes.get('/leaderboard', async (_request, response, next) => {
         username: contestant.username,
         displayName: contestant.displayName,
         contestantNumber: contestant.contestantNumber,
-        longGamePoints: pointsLookup.get(contestant.username) ?? 0,
+        longGamePoints: (pointsLookup.get(contestant.username) ?? 0) + (contestant.loginBonusPoints ?? 0),
+        completedTaskNumbers: contestant.completedTaskNumbers ?? [],
+        loginBonusPoints: contestant.loginBonusPoints ?? 0,
+        loginBonusRank: contestant.loginBonusRank ?? null,
       }))
       .sort((first, second) => {
         if (second.longGamePoints !== first.longGamePoints) {
@@ -233,6 +237,50 @@ judgeRoutes.post('/push/send', async (request, response, next) => {
   try {
     const result = await sendPushToAll({ title, body })
     return response.json(result)
+  } catch (error) {
+    return next(error)
+  }
+})
+
+judgeRoutes.get('/funds', async (_request, response, next) => {
+  try {
+    const requests = await FundRequest.find()
+      .sort({ createdAt: -1 })
+      .populate('user')
+
+    return response.json({
+      requests: requests.map((fundRequest) => FundRequest.toClient(fundRequest)),
+    })
+  } catch (error) {
+    return next(error)
+  }
+})
+
+judgeRoutes.patch('/funds/:id', async (request, response, next) => {
+  try {
+    const { id } = request.params
+    const { status } = request.body
+
+    if (!['pending', 'paid'].includes(status)) {
+      return response.status(400).json({ message: 'Missing or invalid status value.' })
+    }
+
+    const fundRequest = await FundRequest.findByIdAndUpdate(
+      id,
+      {
+        status,
+        paidAt: status === 'paid' ? new Date() : null,
+      },
+      { new: true },
+    ).populate('user')
+
+    if (!fundRequest) {
+      return response.status(404).json({ message: 'Fund request not found.' })
+    }
+
+    return response.json({
+      request: FundRequest.toClient(fundRequest),
+    })
   } catch (error) {
     return next(error)
   }

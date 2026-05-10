@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import FundsRequestCard from '../components/FundsRequestCard'
 import SubmissionForm from '../components/SubmissionForm'
 import { useAuth } from '../hooks/useAuth'
 import { subscribeToPushNotifications } from '../lib/push'
@@ -84,6 +85,7 @@ function formatLongGameCountdown(endDate, nowTimestamp) {
 
 function HomePage() {
   const { token, user, signOut } = useAuth()
+  const submitSectionRef = useRef(null)
   const [now, setNow] = useState(() => Date.now())
   const [activeIconInfo, setActiveIconInfo] = useState('')
   const [tasks, setTasks] = useState([])
@@ -473,9 +475,9 @@ function HomePage() {
   }, [orderedTasks])
 
   function handleScrollToSubmit() {
-    window.scrollTo({
-      top: document.documentElement.scrollHeight,
+    submitSectionRef.current?.scrollIntoView({
       behavior: 'smooth',
+      block: 'start',
     })
   }
 
@@ -872,7 +874,9 @@ function HomePage() {
               </article>
             ) : null}
 
-            <article className="panel stack">
+            <FundsRequestCard token={token} />
+
+            <article className="panel stack" ref={submitSectionRef}>
               <div className="panel-header">
                 <div>
                   <h2>{copy.submitSectionTitle}</h2>

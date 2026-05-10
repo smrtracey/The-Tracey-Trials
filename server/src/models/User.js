@@ -45,6 +45,21 @@ const userSchema = new mongoose.Schema(
       type: [Number],
       default: [],
     },
+    loginBonusRank: {
+      type: Number,
+      min: 1,
+      max: 3,
+      default: undefined,
+    },
+    loginBonusPoints: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    loginBonusAwardedAt: {
+      type: Date,
+      default: undefined,
+    },
     role: {
       type: String,
       enum: ['contestant', 'judge', 'tester'],
@@ -56,6 +71,16 @@ const userSchema = new mongoose.Schema(
   },
 )
 
+userSchema.index(
+  { loginBonusRank: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      loginBonusRank: { $type: 'number' },
+    },
+  },
+)
+
 userSchema.methods.toClient = function toClient() {
   return {
     id: this._id.toString(),
@@ -64,6 +89,8 @@ userSchema.methods.toClient = function toClient() {
     contestantNumber: this.contestantNumber,
     contactEmail: this.contactEmail,
     completedTaskNumbers: this.completedTaskNumbers,
+    loginBonusRank: this.loginBonusRank,
+    loginBonusPoints: this.loginBonusPoints,
     mustChangePassword: this.mustChangePassword,
     role: this.role,
   }

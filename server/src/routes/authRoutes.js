@@ -9,6 +9,57 @@ import { User } from '../models/User.js'
 
 const authRoutes = Router()
 const SHARED_SECRETS_TASK_NUMBER = 1
+const LOGIN_BONUS_BY_RANK = new Map([
+  [1, 5],
+  [2, 3],
+  [3, 2],
+])
+
+function isDuplicateKeyError(error) {
+  return error?.name === 'MongoServerError' && error?.code === 11000
+}
+
+async function awardLoginBonusForUser(user) {
+  if (user.role !== 'contestant' || user.loginBonusRank) {
+    return user
+  }
+
+  for (const [rank, points] of LOGIN_BONUS_BY_RANK) {
+    try {
+      const updatedUser = await User.findOneAndUpdate(
+        {
+          _id: user._id,
+          role: 'contestant',
+          loginBonusRank: null,
+        },
+        {
+          $set: {
+            loginBonusRank: rank,
+            loginBonusPoints: points,
+            loginBonusAwardedAt: new Date(),
+          },
+        },
+        {
+          new: true,
+        },
+      )
+
+      if (updatedUser) {
+        return updatedUser
+      }
+
+      return (await User.findById(user._id)) ?? user
+    } catch (error) {
+      if (isDuplicateKeyError(error)) {
+        continue
+      }
+
+      throw error
+    }
+  }
+
+  return (await User.findById(user._id)) ?? user
+}
 
 async function bootstrapSharedSecretsForUser(user) {
   if (user.role !== 'contestant') {
@@ -77,15 +128,23 @@ authRoutes.post('/login', async (request, response, next) => {
       return response.status(401).json({ message: 'Incorrect username or password.' })
     }
 
+    let authenticatedUser = user
+
     try {
-      await bootstrapSharedSecretsForUser(user)
+      authenticatedUser = await awardLoginBonusForUser(authenticatedUser)
+    } catch (loginBonusError) {
+      console.error('Failed to award first-login bonus.', loginBonusError)
+    }
+
+    try {
+      await bootstrapSharedSecretsForUser(authenticatedUser)
     } catch (bootstrapError) {
       console.error('Failed to bootstrap Shared Secrets completion for login.', bootstrapError)
     }
 
     return response.json({
-      token: createToken(user),
-      user: user.toClient(),
+      token: createToken(authenticatedUser),
+      user: authenticatedUser.toClient(),
     })
   } catch (error) {
     return next(error)

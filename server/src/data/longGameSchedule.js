@@ -5,13 +5,10 @@ const msPerRound = Math.floor((endDate - today) / rounds);
 
 const contestants = ['tau','maria','adriana','marika','katy','will','pierce','cathal','danny'];
 
-
-
 function generateSingleRoundRobin(players) {
   const n = players.length;
   const rounds = n; // For odd n, n rounds, each player gets one bye
   const schedule = [];
-  // Create a copy and add a dummy for bye
   const arr = [...players];
   arr.push(null); // null represents a bye
   const total = arr.length; // n+1
@@ -35,8 +32,6 @@ function generateSingleRoundRobin(players) {
   return schedule;
 }
 
-
-// Generate two full single round-robins for 18 rounds
 const singleRound = generateSingleRoundRobin(contestants);
 const fullSchedule = [...singleRound, ...singleRound];
 

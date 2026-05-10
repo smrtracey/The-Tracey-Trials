@@ -3,6 +3,7 @@ import express from 'express'
 import path from 'path'
 import { env } from './config/env.js'
 import authRoutes from './routes/authRoutes.js'
+import fundRoutes from './routes/fundRoutes.js'
 import judgeRoutes from './routes/judgeRoutes.js'
 import pushRoutes from './routes/pushRoutes.js'
 import submissionRoutes from './routes/submissionRoutes.js'
@@ -26,6 +27,7 @@ export function createApp() {
   })
 
   app.use('/api/auth', authRoutes)
+  app.use('/api/funds', fundRoutes)
   app.use('/api/judge', judgeRoutes)
   app.use('/api/push', pushRoutes)
   app.use('/api/submissions', submissionRoutes)

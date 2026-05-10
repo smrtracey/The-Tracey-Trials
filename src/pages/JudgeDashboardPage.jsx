@@ -2,6 +2,7 @@
 import SubmissionSidePanel from '../components/judge/SubmissionSidePanel';
 import LeaderboardTable from '../components/judge/LeaderboardTable';
 import LongGameOverview from '../components/judge/LongGameOverview';
+import FundsRequestsPanel from '../components/judge/FundsRequestsPanel';
 import SubmissionsTable from '../components/SubmissionsTable';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import NotificationPanel from '../components/judge/NotificationPanel';
@@ -304,6 +305,11 @@ function JudgeDashboardPage() {
             leaderboardRows={leaderboardRows}
             isLoading={isLoading}
             navigate={navigate}
+          />
+          <FundsRequestsPanel
+            leaderboardRows={leaderboardRows}
+            isLoading={isLoading}
+            token={token}
           />
         </div>
 

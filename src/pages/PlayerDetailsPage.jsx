@@ -47,17 +47,30 @@ export default function PlayerDetailsPage() {
   }, [username, token]);
 
   const player = leaderboard.find(e => e.username === username);
+  
   const completedTaskNumbers = player?.completedTaskNumbers || [];
   const completedTasks = tasks.filter(t => completedTaskNumbers.includes(t.taskNumber));
 
   // Flatten long game history for this player
   const longGameHistory = longGameRounds.flatMap(round => {
+    if (round.byeUsername === username) {
+      return [{
+        roundNumber: round.roundNumber,
+        opponent: 'BYE',
+        choice: 'BYE',
+        points: 'BYE',
+        autoCooperate: false,
+        isBye: true,
+      }];
+    }
+
     return (round.matchups ?? []).filter(m => m.players.includes(username)).map(m => ({
       roundNumber: round.roundNumber,
       opponent: m.players.find(p => p !== username),
       choice: m.choices[username],
       points: m.points[username],
       autoCooperate: m.autoCooperate?.[username] || false,
+      isBye: false,
     }));
   });
 
@@ -208,7 +221,7 @@ export default function PlayerDetailsPage() {
             {/* Long Game History Card (with points at top) */}
             <div className="task-meta-card">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 0, marginBottom: 18 }}>
-                <h2 style={{ margin: 0 }}>Long Game History</h2>
+                <h2 style={{ margin: 0 }}>Long Game Votes</h2>
                 <span style={{
                   fontSize: 18,
                   fontWeight: 600,
@@ -238,9 +251,9 @@ export default function PlayerDetailsPage() {
                     {longGameHistory.map((lg, i) => (
                       <tr key={i}>
                         <td>{lg.roundNumber}</td>
-                        <td>{lg.opponent}</td>
-                        <td>{lg.choice ? (lg.autoCooperate ? <span style={{ color: '#1976d2' }}>Cooperate (no vote)</span> : lg.choice.charAt(0).toUpperCase() + lg.choice.slice(1)) : <span className="muted">No vote</span>}</td>
-                        <td>{typeof lg.points === 'number' ? <strong>{lg.points}</strong> : <span className="muted">Pending</span>}</td>
+                        <td>{lg.isBye ? <span style={{ color: '#dc2626', fontWeight: 600 }}>BYE</span> : lg.opponent}</td>
+                        <td>{lg.isBye ? <span style={{ color: '#dc2626', fontWeight: 600 }}>BYE</span> : (lg.choice ? (lg.autoCooperate ? <span style={{ color: '#1976d2' }}>Cooperate (no vote)</span> : lg.choice.charAt(0).toUpperCase() + lg.choice.slice(1)) : <span className="muted">No vote</span>)}</td>
+                        <td>{lg.isBye ? <span style={{ color: '#dc2626', fontWeight: 600 }}>BYE</span> : (typeof lg.points === 'number' ? <strong>{lg.points}</strong> : <span className="muted">Pending</span>)}</td>
                       </tr>
                     ))}
                   </tbody>

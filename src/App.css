@@ -184,6 +184,43 @@
   border-radius: 8px;
 }
 
+.app-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1100;
+}
+
+.task-meta-card.app-modal-card {
+  width: 50vw;
+  max-width: 50vw;
+  padding: 28px;
+  display: grid;
+  gap: 18px;
+}
+
+.download-rename-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.download-rename-modal__header h2 {
+  margin: 0;
+}
+
+.download-rename-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .field select {
   appearance: none;
   background-image:

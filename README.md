@@ -37,13 +37,6 @@ CLIENT_ORIGIN=http://localhost:5173
 SEED_FIRST_NAMES=alex,blake,casey,devon,ellis,frankie,georgia,harper,indie,jordan,sean
 SEED_DEFAULT_PASSWORD=TraceyTrials2026!
 SEED_JUDGE_PASSWORD=Judge12345
-SUBMISSION_EMAIL_TO=organizer@example.com
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=mailer@example.com
-SMTP_PASS=replace-with-smtp-password
-SMTP_FROM=Tracey Trials <mailer@example.com>
 ```
 
 ## Run locally
@@ -86,16 +79,6 @@ Set these on the API service (`tracey-trials-api`):
 - `SEED_DEFAULT_PASSWORD`
 - `SEED_JUDGE_PASSWORD`
 
-Optional API vars (only if you use email notifications):
-
-- `SUBMISSION_EMAIL_TO`
-- `SMTP_HOST`
-- `SMTP_PORT`
-- `SMTP_SECURE`
-- `SMTP_USER`
-- `SMTP_PASS`
-- `SMTP_FROM`
-
 Set this on the frontend static site (`tracey-trials-web`):
 
 - `VITE_API_BASE_URL` (example: `https://tracey-trials-api.onrender.com`)
@@ -136,5 +119,4 @@ After first login, users are required to set a new password before they can acce
 
 - Uploaded files are saved to `server/uploads` for development.
 - `vite.config.js` proxies `/api` and `/uploads` to the backend in local development.
-- Each submission can trigger an email notification with contestant details, task reference, text content, and uploaded media as attachments when SMTP variables are configured.
 - This is a clean architecture scaffold; you can add scoring, admin moderation, or judges next.

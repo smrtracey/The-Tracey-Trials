@@ -3,12 +3,14 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchJudgeSubmissions, fetchJudgeLongGameRounds, fetchJudgeLeaderboard, fetchJudgeTasks } from '../lib/api';
+import DownloadRenameModal from '../components/DownloadRenameModal';
 import '../App.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
 export default function PlayerDetailsPage() {
   const [mediaModal, setMediaModal] = useState({ open: false, url: '', type: '', name: '' });
+  const [downloadState, setDownloadState] = useState({ isOpen: false, url: '', fileName: '' });
   const [expandedSubmissionId, setExpandedSubmissionId] = useState(null);
   const { username } = useParams();
   const navigate = useNavigate();
@@ -208,19 +210,23 @@ export default function PlayerDetailsPage() {
                             ) : (
                               <video src={mediaModal.url} controls style={{ maxWidth: '90vw', maxHeight: '75vh', borderRadius: 10, marginBottom: 18 }} />
                             )}
-                            <a
-                              href={mediaModal.url}
-                              download={mediaModal.name}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              type="button"
+                              onClick={() => setDownloadState({ isOpen: true, url: mediaModal.url, fileName: mediaModal.name })}
                               className="button"
                               style={{ marginTop: 8, minWidth: 120, textAlign: 'center' }}
                             >
                               Download
-                            </a>
+                            </button>
                           </div>
                         </div>
                       )}
+                      <DownloadRenameModal
+                        isOpen={downloadState.isOpen}
+                        url={downloadState.url}
+                        fileName={downloadState.fileName}
+                        onClose={() => setDownloadState({ isOpen: false, url: '', fileName: '' })}
+                      />
                 </ul>
               )}
             </div>

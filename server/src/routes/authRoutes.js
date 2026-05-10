@@ -2,7 +2,6 @@ import bcrypt from 'bcryptjs'
 import { Router } from 'express'
 import { Submission } from '../models/Submission.js'
 import { Task } from '../models/Task.js'
-import { sendSubmissionEmail } from '../services/submissionEmailService.js'
 import { createToken } from '../utils/createToken.js'
 import { requireAuth } from '../middleware/auth.js'
 import { User } from '../models/User.js'
@@ -92,14 +91,6 @@ async function bootstrapSharedSecretsForUser(user) {
     })
 
     await submission.populate('user')
-
-    void sendSubmissionEmail({
-      submission: Submission.toClient(submission),
-      user: submission.user,
-      task,
-    }).catch((emailError) => {
-      console.error('Failed to send Shared Secrets auto-submission email.', emailError)
-    })
   }
 
   if (!hasCompletedSharedSecrets) {

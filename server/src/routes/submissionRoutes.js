@@ -5,15 +5,8 @@ import { Submission } from '../models/Submission.js'
 import { Task } from '../models/Task.js'
 import { upload } from '../middleware/upload.js'
 import { uploadSubmissionFiles } from '../services/cloudinaryService.js'
-import { sendSubmissionEmail } from '../services/submissionEmailService.js'
 
 const submissionRoutes = Router()
-
-function sendSubmissionEmailInBackground({ submission, user, task }) {
-  void sendSubmissionEmail({ submission, user, task }).catch((emailError) => {
-    console.error('Failed to send submission email notification.', emailError)
-  })
-}
 
 submissionRoutes.use(requireAuth)
 submissionRoutes.use((request, response, next) => {
@@ -81,12 +74,6 @@ submissionRoutes.post('/', upload.array('media', 10), async (request, response, 
     await submission.populate('user')
 
     const submissionData = Submission.toClient(submission)
-
-    sendSubmissionEmailInBackground({
-      submission: submissionData,
-      user: submission.user,
-      task,
-    })
 
     return response.status(201).json({
       submission: submissionData,

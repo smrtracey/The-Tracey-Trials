@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import DownloadRenameModal from '../DownloadRenameModal';
 
 export default function SubmissionSidePanel({
   activeSubmissionId,
@@ -22,6 +23,7 @@ export default function SubmissionSidePanel({
   if (!submission) return null;
   const taskLabel = submission.taskLabel || getTaskLabel(submission.taskNumber);
   const hasMedia = (Array.isArray(submission.mediaItems) && submission.mediaItems.length > 0) || submission.mediaType ? 'Yes' : 'No';
+  const [downloadState, setDownloadState] = useState({ isOpen: false, url: '', fileName: '' });
 
   return (
     <div
@@ -107,14 +109,14 @@ export default function SubmissionSidePanel({
                           style={{ width: '100%', borderRadius: 8 }}
                         />
                       </a>
-                      <a
-                        href={mediaUrl}
-                        download={fileName}
+                      <button
+                        type="button"
+                        onClick={() => setDownloadState({ isOpen: true, url: mediaUrl, fileName })}
                         className="button-ghost"
                         style={{ marginTop: 4, fontSize: '0.95em', padding: '2px 10px' }}
                       >
                         Download
-                      </a>
+                      </button>
                     </div>
                   ) : (
                     <div
@@ -137,14 +139,14 @@ export default function SubmissionSidePanel({
                           style={{ width: '100%', borderRadius: 8, objectFit: 'cover' }}
                         />
                       </a>
-                      <a
-                        href={mediaUrl}
-                        download={fileName}
+                      <button
+                        type="button"
+                        onClick={() => setDownloadState({ isOpen: true, url: mediaUrl, fileName })}
                         className="button-ghost"
                         style={{ marginTop: 4, fontSize: '0.95em', padding: '2px 10px' }}
                       >
                         Download
-                      </a>
+                      </button>
                     </div>
                   );
                 })}
@@ -192,6 +194,12 @@ export default function SubmissionSidePanel({
           </article>
         </div>
       </aside>
+      <DownloadRenameModal
+        isOpen={downloadState.isOpen}
+        url={downloadState.url}
+        fileName={downloadState.fileName}
+        onClose={() => setDownloadState({ isOpen: false, url: '', fileName: '' })}
+      />
     </div>
   );
 }

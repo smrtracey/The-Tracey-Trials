@@ -118,6 +118,15 @@ function JudgeDashboardPage() {
     [taskNameByNumber]
   );
 
+  const availableTasks = useMemo(
+    () =>
+      availableTaskNumbers.map((taskNumber) => ({
+        taskNumber,
+        label: getTaskLabel(taskNumber),
+      })),
+    [availableTaskNumbers, getTaskLabel],
+  );
+
   function getSubmissionMediaItems(submission) {
     if (!submission) return [];
     if (Array.isArray(submission.mediaItems)) return submission.mediaItems;
@@ -175,6 +184,13 @@ function JudgeDashboardPage() {
       filteredSubmissions.map((submission) => ({
         ...submission,
         mediaItems: getSubmissionMediaItems(submission),
+        createdAt: new Date(submission.createdAt).toLocaleString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        }).replace(',', ''),
         createdAtTimestamp: new Date(submission.createdAt).getTime() || 0,
         contestantLabel: `${submission.displayName} (@${submission.username})`,
         hasMedia: (submission.mediaItems?.length ?? 0) > 0 || submission.mediaType ? 'Yes' : 'No',
@@ -282,7 +298,7 @@ function JudgeDashboardPage() {
           contestants={contestants}
           selectedContestant={selectedContestant}
           setSelectedContestant={setSelectedContestant}
-          availableTaskNumbers={availableTaskNumbers}
+          availableTasks={availableTasks}
           taskFilter={taskFilter}
           setTaskFilter={setTaskFilter}
           searchFilter={searchFilter}

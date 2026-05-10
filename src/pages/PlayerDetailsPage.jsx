@@ -5,6 +5,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { fetchJudgeSubmissions, fetchJudgeLongGameRounds, fetchJudgeLeaderboard, fetchJudgeTasks } from '../lib/api';
 import '../App.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+
 export default function PlayerDetailsPage() {
   const [mediaModal, setMediaModal] = useState({ open: false, url: '', type: '', name: '' });
   const [expandedSubmissionId, setExpandedSubmissionId] = useState(null);
@@ -50,6 +52,23 @@ export default function PlayerDetailsPage() {
   
   const completedTaskNumbers = player?.completedTaskNumbers || [];
   const completedTasks = tasks.filter(t => completedTaskNumbers.includes(t.taskNumber));
+
+  function getSubmissionMediaItems(submission) {
+    if (!submission) return [];
+    if (Array.isArray(submission.mediaItems)) return submission.mediaItems;
+    if (submission.mediaType && submission.mediaUrl) {
+      return [{ type: submission.mediaType, url: submission.mediaUrl, originalName: submission.originalName }];
+    }
+
+    return [];
+  }
+
+  function getMediaUrl(url) {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
+    return `${API_BASE_URL}/${url}`;
+  }
 
   // Flatten long game history for this player
   const longGameHistory = longGameRounds.flatMap(round => {
@@ -109,7 +128,7 @@ export default function PlayerDetailsPage() {
                   {submissions.map(s => {
                     const task = tasks.find(t => t.taskNumber === s.taskNumber);
                     const taskLabel = task ? task.title : `Task ${s.taskNumber}`;
-                    const mediaItems = s.mediaItems || [];
+                    const mediaItems = getSubmissionMediaItems(s);
                     const isExpanded = expandedSubmissionId === s.id;
                     return (
                       <li key={s.id} style={{ marginBottom: 8, borderBottom: '1px solid #eee', paddingBottom: 4 }}>
@@ -144,16 +163,22 @@ export default function PlayerDetailsPage() {
                               ) : (
                                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                                   {mediaItems.map((m, idx) => (
+                                    (() => {
+                                      const mediaUrl = getMediaUrl(m.url);
+
+                                      return (
                                     <div key={idx} style={{ cursor: 'pointer', display: 'inline-block' }}
-                                      onClick={() => setMediaModal({ open: true, url: m.url, type: m.type, name: m.originalName })}>
+                                      onClick={() => setMediaModal({ open: true, url: mediaUrl, type: m.type, name: m.originalName })}>
                                       {m.type === 'image' ? (
-                                        <img src={m.url} alt={m.originalName} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }} />
+                                        <img src={mediaUrl} alt={m.originalName} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }} />
                                       ) : (
                                         <div style={{ width: 64, height: 64, background: '#222', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid #ddd' }}>
                                           <span style={{ fontSize: 28 }}>🎬</span>
                                         </div>
                                       )}
                                     </div>
+                                      );
+                                    })()
                                   ))}
                                 </div>
                               )}

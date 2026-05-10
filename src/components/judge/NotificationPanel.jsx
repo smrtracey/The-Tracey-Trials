@@ -2,24 +2,62 @@
 import React, { useState, useEffect } from 'react';
 import { sendJudgePushNotification, fetchNotificationSchemas, saveNotificationSchema, deleteNotificationSchema } from '../../lib/api';
 
+function emptyNotification() {
+  return { title: '', body: '', recipients: [] };
+}
+
+function getTemplateSchemas(schemas) {
+  return (schemas || []).filter((schema) => (schema.kind ?? 'template') === 'template');
+}
+
+function getScheduledSchemas(schemas) {
+  return (schemas || []).filter((schema) => schema.kind === 'scheduled');
+}
+
+function sortSchemasOldestFirst(schemas) {
+  return [...(schemas || [])].sort((left, right) => {
+    const leftTime = new Date(left.createdAt || 0).getTime();
+    const rightTime = new Date(right.createdAt || 0).getTime();
+    return leftTime - rightTime;
+  });
+}
+
+function formatScheduledDateTime(value) {
+  if (!value) return 'No date set';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export default function NotificationPanel({ contestants, token }) {
-  const [notifications, setNotifications] = useState([{ title: '', body: '', recipients: [] }]);
+  const [notifications, setNotifications] = useState([emptyNotification()]);
   const [isSendingNotification, setIsSendingNotification] = useState(false);
   const [notifyResult, setNotifyResult] = useState('');
   const [showNotificationForm, setShowNotificationForm] = useState(false);
+  const [activeSchemaTab, setActiveSchemaTab] = useState('saved');
   const [templateName, setTemplateName] = useState('');
-  const [savedTemplates, setSavedTemplates] = useState([]);
+  const [notificationSchemas, setNotificationSchemas] = useState([]);
   const [showTemplatePrompt, setShowTemplatePrompt] = useState(false);
   const [showSendConfirm, setShowSendConfirm] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduledName, setScheduledName] = useState('');
   const [scheduledDateTime, setScheduledDateTime] = useState('');
+  const savedTemplates = getTemplateSchemas(notificationSchemas);
+  const scheduledNotifications = getScheduledSchemas(notificationSchemas);
+  const visibleSchemas = activeSchemaTab === 'saved' ? savedTemplates : scheduledNotifications;
 
 
   useEffect(() => {
     if (!token) return;
     fetchNotificationSchemas(token)
-      .then(res => setSavedTemplates(res.schemas || []))
-      .catch(() => setSavedTemplates([]));
+      .then(res => setNotificationSchemas(sortSchemasOldestFirst(res.schemas)))
+      .catch(() => setNotificationSchemas([]));
   }, [token]);
 
 
@@ -30,7 +68,7 @@ export default function NotificationPanel({ contestants, token }) {
       setTemplateName('');
       setNotifyResult('Template saved!');
       const res = await fetchNotificationSchemas(token);
-      setSavedTemplates(res.schemas || []);
+      setNotificationSchemas(sortSchemasOldestFirst(res.schemas));
     } catch (err) {
       setNotifyResult('Failed to save template.', err);
     }
@@ -47,7 +85,7 @@ export default function NotificationPanel({ contestants, token }) {
       await deleteNotificationSchema(token, name);
       setNotifyResult('Template deleted.');
       const res = await fetchNotificationSchemas(token);
-      setSavedTemplates(res.schemas || []);
+      setNotificationSchemas(sortSchemasOldestFirst(res.schemas));
     } catch (err) {
       setNotifyResult('Failed to delete template.', err);
     }
@@ -88,7 +126,7 @@ export default function NotificationPanel({ contestants, token }) {
         totalFailed += result.failed || 0;
       }
       setNotifyResult(`Sent to ${totalSent} device(s).${totalFailed > 0 ? ` ${totalFailed} failed.` : ''}`);
-      setNotifications([{ title: '', body: '', recipients: [] }]);
+      setNotifications([emptyNotification()]);
     } catch (sendError) {
       setNotifyResult(`Error: ${sendError.message}`);
     } finally {
@@ -177,13 +215,13 @@ export default function NotificationPanel({ contestants, token }) {
           >
             Add Notification
           </button>
-          {notifyResult ? <p className="muted">{notifyResult}</p> : null}
           <div style={{ display: 'flex', gap: 12 }}>
             <button
               className="button"
               type="submit"
               disabled={isSendingNotification || notifications.some(n => !n.title.trim() || !n.body.trim() || n.recipients.length === 0)}
             >
+              <span aria-hidden="true" style={{ marginRight: 8 }}>✉</span>
               {isSendingNotification ? 'Sending…' : 'Send All Notifications'}
             </button>
             {showSendConfirm && (
@@ -248,20 +286,22 @@ export default function NotificationPanel({ contestants, token }) {
             )}
             <button
               type="button"
-              className="button"
+              className="button notification-template-button"
               onClick={() => setShowTemplatePrompt(true)}
               style={{ minWidth: 120 }}
               disabled={notifications.length === 0 || notifications.every(n => !n.title.trim() && !n.body.trim() && n.recipients.length === 0)}
             >
+              <span aria-hidden="true" style={{ marginRight: 8 }}>▣</span>
               Save As Template
             </button>
             <button
               type="button"
-              className="button"
+              className="button notification-schedule-button"
               onClick={() => setShowScheduleModal(true)}
               style={{ minWidth: 160, marginLeft: 8 }}
-              disabled={notifications.length === 0 || notifications.every(n => !n.title.trim() && !n.body.trim() && n.recipients.length === 0)}
+                      Close
             >
+              <span aria-hidden="true" style={{ marginRight: 8 }}>◷</span>
               Schedule Notifications
             </button>
                     {showScheduleModal && (
@@ -301,6 +341,21 @@ export default function NotificationPanel({ contestants, token }) {
                             Choose a date and time to send notifications to <strong>{[...new Set(notifications.flatMap(n => n.recipients))].length}</strong> people:
                           </div>
                           <input
+                            type="text"
+                            value={scheduledName}
+                            onChange={e => setScheduledName(e.target.value)}
+                            placeholder="Enter schedule name"
+                            required
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: 6,
+                              border: '1px solid #ccc',
+                              fontSize: 16,
+                              width: '100%',
+                              color: '#222',
+                            }}
+                          />
+                          <input
                             type="datetime-local"
                             value={scheduledDateTime}
                             onChange={e => setScheduledDateTime(e.target.value)}
@@ -320,24 +375,40 @@ export default function NotificationPanel({ contestants, token }) {
                               type="button"
                               className="button"
                               style={{ minWidth: 100 }}
-                              onClick={() => {
-                                setShowScheduleModal(false);
-                                // For now, just log the scheduled time and notifications
-                                console.log('Scheduled notifications for:', scheduledDateTime, notifications);
-                                setNotifyResult('Scheduled for ' + scheduledDateTime);
-                                setScheduledDateTime('');
+                              onClick={async () => {
+                                try {
+                                  await saveNotificationSchema(token, {
+                                    name: scheduledName.trim(),
+                                    notifications,
+                                    kind: 'scheduled',
+                                    scheduledFor: scheduledDateTime,
+                                  });
+                                  setShowScheduleModal(false);
+                                  setNotifyResult(`Scheduled ${scheduledName.trim()} for ${scheduledDateTime}`);
+                                  setScheduledName('');
+                                  setScheduledDateTime('');
+                                  setNotifications([emptyNotification()]);
+                                  const res = await fetchNotificationSchemas(token);
+                                  setNotificationSchemas(sortSchemasOldestFirst(res.schemas));
+                                } catch (error) {
+                                  setNotifyResult(`Failed to schedule notifications: ${error.message}`);
+                                }
                               }}
-                              disabled={!scheduledDateTime}
+                              disabled={!scheduledName.trim() || !scheduledDateTime}
                             >
                               Schedule
                             </button>
                             <button
                               type="button"
                               className="button-ghost"
-                              onClick={() => { setShowScheduleModal(false); setScheduledDateTime(''); }}
+                              onClick={() => {
+                                setShowScheduleModal(false);
+                                setScheduledName('');
+                                setScheduledDateTime('');
+                              }}
                               style={{ minWidth: 100 }}
                             >
-                              Cancel
+                              Close
                             </button>
                           </div>
                         </div>
@@ -349,7 +420,7 @@ export default function NotificationPanel({ contestants, token }) {
               onClick={() => setShowNotificationForm(false)}
               style={{ minWidth: 80 }}
             >
-              Cancel
+              Close
             </button>
           </div>
         </form>
@@ -427,28 +498,62 @@ export default function NotificationPanel({ contestants, token }) {
                   className="button-ghost"
                   onClick={() => setShowTemplatePrompt(false)}
                 >
-                  Cancel
+                  Close
                 </button>
               </div>
             </form>
           </div>
         )}
-        <div style={{ marginTop: 32 }}>
-          <strong>Saved Templates:</strong>
-          {savedTemplates.length === 0 && <div className="muted">No templates saved.</div>}
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {savedTemplates.map(template => (
-              <li key={template.name} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <span style={{ flex: 1 }}>{template.name}</span>
-                <button type="button" className="button-ghost" onClick={() => handleLoadTemplate(template)}>
-                  Load
-                </button>
-                <button type="button" className="button-ghost" onClick={() => handleDeleteTemplate(template.name)}>
-                  Delete
-                </button>
-              </li>
-            ))}
-          </ul>
+        <div className="notification-schema-panel" style={{ marginTop: 32 }}>
+          <div className="notification-schema-tabs" role="tablist" aria-label="Notification schema tabs">
+            <button
+              type="button"
+              className={`notification-schema-tab${activeSchemaTab === 'saved' ? ' is-active' : ''}`}
+              onClick={() => setActiveSchemaTab('saved')}
+              role="tab"
+              aria-selected={activeSchemaTab === 'saved'}
+            >
+              Saved Notifications ({savedTemplates.length})
+            </button>
+            <button
+              type="button"
+              className={`notification-schema-tab${activeSchemaTab === 'scheduled' ? ' is-active' : ''}`}
+              onClick={() => setActiveSchemaTab('scheduled')}
+              role="tab"
+              aria-selected={activeSchemaTab === 'scheduled'}
+            >
+              Scheduled ({scheduledNotifications.length})
+            </button>
+          </div>
+          <div className="notification-schema-list" role="tabpanel">
+            {visibleSchemas.length === 0 && (
+              <div className="muted">
+                {activeSchemaTab === 'saved' ? 'No templates saved.' : 'No scheduled notifications.'}
+              </div>
+            )}
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {visibleSchemas.map((schema) => (
+                <li key={schema.name} className="notification-schema-list-item">
+                  <span className="notification-schema-list-text">
+                    <span>{schema.name}</span>
+                    {activeSchemaTab === 'scheduled' ? (
+                      <span className="muted notification-schema-list-meta">
+                        {formatScheduledDateTime(schema.scheduledFor)}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="notification-schema-actions">
+                    <button type="button" className="button-ghost" onClick={() => handleLoadTemplate(schema)}>
+                      Load
+                    </button>
+                    <button type="button" className="button-ghost" onClick={() => handleDeleteTemplate(schema.name)}>
+                      Delete
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
         </>
       )}

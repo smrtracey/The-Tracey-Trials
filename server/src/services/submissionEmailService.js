@@ -1,4 +1,3 @@
-import path from 'path'
 import nodemailer from 'nodemailer'
 import { env } from '../config/env.js'
 
@@ -35,22 +34,20 @@ function getTransporter() {
   return cachedTransporter
 }
 
-function buildAttachmentList(uploadedFiles) {
-  const normalizedFiles = Array.isArray(uploadedFiles)
-    ? uploadedFiles
-    : uploadedFiles?.path
-      ? [uploadedFiles]
-      : []
+function buildMediaLines(submission) {
+  const mediaItems = Array.isArray(submission.mediaItems) ? submission.mediaItems : []
 
-  if (normalizedFiles.length === 0) {
-    return []
+  if (mediaItems.length === 0) {
+    return ['Media: none']
   }
 
-  return normalizedFiles.map((uploadedFile) => ({
-    filename: uploadedFile.originalname || path.basename(uploadedFile.path),
-    path: uploadedFile.path,
-    contentType: uploadedFile.mimetype,
-  }))
+  return [
+    'Media:',
+    ...mediaItems.map((mediaItem, index) => {
+      const label = mediaItem.originalName || `File ${index + 1}`
+      return `- ${label}: ${mediaItem.url}`
+    }),
+  ]
 }
 
 function formatSubmittedAtForIreland(value) {
@@ -77,17 +74,17 @@ function formatSubmittedAtForIreland(value) {
   return `${values.hour}:${values.minute}:${values.second} ${values.day}-${values.month}-${values.year}`
 }
 
-export async function sendSubmissionEmail({ submission, user, task, uploadedFiles }) {
+export async function sendSubmissionEmail({ submission, user, task }) {
   const transporter = getTransporter()
 
   if (!transporter) {
     return { sent: false, skipped: true, reason: 'Email settings are not configured.' }
   }
 
-  const attachments = buildAttachmentList(uploadedFiles)
   const taskLabel = task?.title ? `${submission.taskNumber} - ${task.title}` : String(submission.taskNumber)
   const contestantLabel = `${user.displayName} (@${user.username})`
   const textBody = submission.textBody || '(none)'
+  const mediaLines = buildMediaLines(submission)
 
   await transporter.sendMail({
     from: env.smtpFrom,
@@ -103,11 +100,8 @@ export async function sendSubmissionEmail({ submission, user, task, uploadedFile
       'Text:',
       textBody,
       '',
-      attachments.length > 0
-        ? `Media attachments: ${attachments.map((attachment) => attachment.filename).join(', ')}`
-        : 'Media attachments: none',
+      ...mediaLines,
     ].join('\n'),
-    attachments,
   })
 
   return { sent: true, skipped: false }

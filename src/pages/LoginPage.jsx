@@ -11,6 +11,7 @@ function LoginPage() {
   const location = useLocation();
   const { isAuthenticated, user, signIn } = useAuth();
   const [formState, setFormState] = useState({ username: "", password: "" });
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -81,20 +82,31 @@ function LoginPage() {
 
           <div className="field">
             <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={formState.password}
-              onChange={(event) =>
-                setFormState((current) => ({
-                  ...current,
-                  password: event.target.value,
-                }))
-              }
-              placeholder="password"
-              required
-            />
+            <div className="password-input-wrap">
+              <input
+                id="password"
+                type={isPasswordVisible ? "text" : "password"}
+                autoComplete="current-password"
+                value={formState.password}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    password: event.target.value,
+                  }))
+                }
+                placeholder="password"
+                required
+              />
+              <button
+                type="button"
+                className="password-visibility-button"
+                onClick={() => setIsPasswordVisible((current) => !current)}
+                aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                aria-pressed={isPasswordVisible}
+              >
+                {isPasswordVisible ? "🙈" : "👁"}
+              </button>
+            </div>
           </div>
 
           <div
@@ -102,7 +114,7 @@ function LoginPage() {
             style={{ justifyContent: "center" }}
           >
             <button className="button" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Signing in…" : "Enter competition"}
+              {isSubmitting ? "Signing in…" : "Log in"}
             </button>
           </div>
         </form>

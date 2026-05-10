@@ -1,5 +1,13 @@
 import React, { useState, useMemo } from 'react';
 
+function truncateTextPreview(value, maxLength = 15) {
+  if (!value) {
+    return '';
+  }
+
+  return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
+}
+
 export default function SubmissionsTable({
   submissionRows,
   isLoading,
@@ -14,9 +22,12 @@ export default function SubmissionsTable({
   }, [submissionRows, showDoneSubmissions]);
 
   return (
-    <article className="task-meta-card judge-dashboard-card">
+    <article className="task-meta-card judge-dashboard-card submissions-card">
       <div className="judge-section-header" style={{ position: 'relative', minHeight: 40 }}>
-        <h2 style={{ margin: 0 }}>{showDoneSubmissions ? 'Finished Submissions' : 'New Submissions'}</h2>
+        <h2 style={{ margin: 0 }}>
+          {showDoneSubmissions ? 'Finished Submissions' : 'New Submissions'}{' '}
+          <span style={{ color: 'var(--text-soft)', fontWeight: 500 }}>({filteredRows.length})</span>
+        </h2>
         <button
           className="button-ghost"
           style={{
@@ -67,7 +78,7 @@ export default function SubmissionsTable({
                     </td>
                     <td>{submission.taskLabel}</td>
                     <td>{submission.hasMedia}</td>
-                    <td>{submission.textBody}</td>
+                    <td title={submission.textBody || ''}>{truncateTextPreview(submission.textBody)}</td>
                   </tr>
                 ))}
               </tbody>

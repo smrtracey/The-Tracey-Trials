@@ -317,13 +317,19 @@ judgeRoutes.get('/notification-schemas', async (request, response, next) => {
 // Create or update a schema
 judgeRoutes.post('/notification-schemas', async (request, response, next) => {
   try {
-    const { name, notifications } = request.body;
+    const { name, notifications, kind = 'template', scheduledFor = null } = request.body;
     if (!name || !Array.isArray(notifications)) {
       return response.status(400).json({ message: 'Name and notifications are required.' });
     }
+    if (!['template', 'scheduled'].includes(kind)) {
+      return response.status(400).json({ message: 'Invalid notification schema kind.' });
+    }
+    if (kind === 'scheduled' && !scheduledFor) {
+      return response.status(400).json({ message: 'scheduledFor is required for scheduled notification sets.' });
+    }
     let schema = await NotificationSchemaModel.findOneAndUpdate(
       { name, createdBy: request.user._id },
-      { name, notifications, createdBy: request.user._id },
+      { name, notifications, kind, scheduledFor, createdBy: request.user._id },
       { new: true, upsert: true }
     );
     response.json({ schema });

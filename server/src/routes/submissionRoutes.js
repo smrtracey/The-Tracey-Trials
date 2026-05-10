@@ -1,12 +1,19 @@
-import path from 'path'
+import fs from 'fs/promises'
 import { Router } from 'express'
 import { requireAuth } from '../middleware/auth.js'
 import { Submission } from '../models/Submission.js'
 import { Task } from '../models/Task.js'
 import { upload } from '../middleware/upload.js'
+import { uploadSubmissionFiles } from '../services/cloudinaryService.js'
 import { sendSubmissionEmail } from '../services/submissionEmailService.js'
 
 const submissionRoutes = Router()
+
+function sendSubmissionEmailInBackground({ submission, user, task }) {
+  void sendSubmissionEmail({ submission, user, task }).catch((emailError) => {
+    console.error('Failed to send submission email notification.', emailError)
+  })
+}
 
 submissionRoutes.use(requireAuth)
 submissionRoutes.use((request, response, next) => {
@@ -35,10 +42,11 @@ submissionRoutes.get('/', async (_request, response, next) => {
 })
 
 submissionRoutes.post('/', upload.array('media', 10), async (request, response, next) => {
+  const uploadedFiles = Array.isArray(request.files) ? request.files : []
+
   try {
     const taskNumber = Number(request.body.taskNumber)
     const textBody = (request.body.textBody ?? '').trim()
-    const uploadedFiles = Array.isArray(request.files) ? request.files : []
     const hasMedia = uploadedFiles.length > 0
     const hasTextBody = Boolean(textBody)
 
@@ -58,11 +66,7 @@ submissionRoutes.post('/', upload.array('media', 10), async (request, response, 
       return response.status(404).json({ message: 'Task not found for this submission.' })
     }
 
-    const mediaItems = uploadedFiles.map((file) => ({
-      url: `/uploads/${path.basename(file.path)}`,
-      type: file.mimetype.startsWith('video/') ? 'video' : 'image',
-      originalName: file.originalname,
-    }))
+    const mediaItems = await uploadSubmissionFiles(uploadedFiles)
 
     const submission = await Submission.create({
       user: request.user._id,
@@ -76,22 +80,29 @@ submissionRoutes.post('/', upload.array('media', 10), async (request, response, 
 
     await submission.populate('user')
 
-    try {
-      await sendSubmissionEmail({
-        submission: Submission.toClient(submission),
-        user: submission.user,
-        task,
-        uploadedFiles,
-      })
-    } catch (emailError) {
-      console.error('Failed to send submission email notification.', emailError)
-    }
+    const submissionData = Submission.toClient(submission)
+
+    sendSubmissionEmailInBackground({
+      submission: submissionData,
+      user: submission.user,
+      task,
+    })
 
     return response.status(201).json({
-      submission: Submission.toClient(submission),
+      submission: submissionData,
     })
   } catch (error) {
     return next(error)
+  } finally {
+    await Promise.all(
+      uploadedFiles.map(async (file) => {
+        try {
+          await fs.unlink(file.path)
+        } catch {
+          // Ignore temp-file cleanup failures.
+        }
+      }),
+    )
   }
 })
 

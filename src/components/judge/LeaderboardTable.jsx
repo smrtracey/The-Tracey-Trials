@@ -7,7 +7,7 @@ export default function LeaderboardTable({
 }) {
   // Removed sorting state and logic
   return (
-    <article className="task-meta-card judge-dashboard-card">
+    <article className="task-meta-card judge-dashboard-card leaderboard-card">
       <div className="judge-section-header">
         <h2>Leaderboard</h2>
       </div>

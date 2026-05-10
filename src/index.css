@@ -1,31 +1,36 @@
 :root {
-  --bg: #f5f7fb;
-  --surface: rgba(255, 255, 255, 0.92);
-  --surface-strong: #eef2ff;
+  --bg: #eef4fb;
+  --surface: rgba(255, 255, 255, 0.95);
+  --surface-strong: #e7eef8;
   --input-bg: #ffffff;
-  --border: rgba(148, 163, 184, 0.24);
-  --border-strong: rgba(100, 116, 139, 0.32);
-  --text: #475569;
-  --text-soft: #64748b;
-  --text-h: #0f172a;
-  --accent: #0ea5e9;
-  --accent-strong: #0284c7;
-  --accent-bg: rgba(14, 165, 233, 0.14);
-  --accent-ring: rgba(2, 132, 199, 0.28);
-  --shadow: 0 24px 80px rgba(15, 23, 42, 0.12);
+  --border: rgba(71, 85, 105, 0.16);
+  --border-strong: rgba(51, 65, 85, 0.24);
+  --text: #334155;
+  --text-soft: #526277;
+  --text-h: #0b1220;
+  --accent: #0284c7;
+  --accent-strong: #0369a1;
+  --accent-bg: rgba(2, 132, 199, 0.12);
+  --accent-ring: rgba(3, 105, 161, 0.22);
+  --shadow: 0 24px 70px rgba(15, 23, 42, 0.1);
+  --page-glow: rgba(14, 165, 233, 0.12);
+  --page-top: #f9fbff;
+  --page-bottom: #e9f0fb;
   --sans: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   font: 16px/1.5 var(--sans);
   letter-spacing: 0.01em;
   color: var(--text);
   background:
-    radial-gradient(circle at top, rgba(14, 165, 233, 0.14), transparent 28%),
-    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+    radial-gradient(circle at top, var(--page-glow), transparent 28%),
+    linear-gradient(180deg, var(--page-top) 0%, var(--page-bottom) 100%);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -43,9 +48,12 @@
     --accent-bg: rgba(14, 165, 233, 0.16);
     --accent-ring: rgba(14, 165, 233, 0.3);
     --shadow: 0 24px 80px rgba(2, 6, 23, 0.4);
+    --page-glow: rgba(14, 165, 233, 0.18);
+    --page-top: #020617;
+    --page-bottom: #0f172a;
     background:
-      radial-gradient(circle at top, rgba(14, 165, 233, 0.18), transparent 28%),
-      linear-gradient(180deg, #020617 0%, #0f172a 100%);
+      radial-gradient(circle at top, var(--page-glow), transparent 28%),
+      linear-gradient(180deg, var(--page-top) 0%, var(--page-bottom) 100%);
   }
 }
 

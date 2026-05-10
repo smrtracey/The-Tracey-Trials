@@ -4,7 +4,7 @@ export default function FilterBar({
   contestants,
   selectedContestant,
   setSelectedContestant,
-  availableTaskNumbers,
+  availableTasks,
   taskFilter,
   setTaskFilter,
   searchFilter,
@@ -34,9 +34,9 @@ export default function FilterBar({
         <label htmlFor="judge-filter-task">Task</label>
         <select id="judge-filter-task" value={taskFilter} onChange={(event) => setTaskFilter(event.target.value)}>
           <option value="all">All tasks</option>
-          {availableTaskNumbers.map((taskNumber) => (
-            <option key={taskNumber} value={String(taskNumber)}>
-              {taskNumber}
+          {availableTasks.map((task) => (
+            <option key={task.taskNumber} value={String(task.taskNumber)}>
+              {task.label}
             </option>
           ))}
         </select>

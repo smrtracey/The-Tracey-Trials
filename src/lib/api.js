@@ -272,14 +272,14 @@ export async function fetchNotificationSchemas(token) {
   })
 }
 
-export async function saveNotificationSchema(token, { name, notifications }) {
+export async function saveNotificationSchema(token, { name, notifications, kind = 'template', scheduledFor = null }) {
   return request('/api/judge/notification-schemas', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ name, notifications }),
+    body: JSON.stringify({ name, notifications, kind, scheduledFor })
   })
 }
 

@@ -15,6 +15,12 @@ const LOGIN_BONUS_BY_RANK = new Map([
   [3, 2],
 ])
 
+function bootstrapSharedSecretsInBackground(user) {
+  void bootstrapSharedSecretsForUser(user).catch((bootstrapError) => {
+    console.error('Failed to bootstrap Shared Secrets completion for login.', bootstrapError)
+  })
+}
+
 function isDuplicateKeyError(error) {
   return error?.name === 'MongoServerError' && error?.code === 11000
 }
@@ -87,16 +93,13 @@ async function bootstrapSharedSecretsForUser(user) {
 
     await submission.populate('user')
 
-    try {
-      await sendSubmissionEmail({
-        submission: Submission.toClient(submission),
-        user: submission.user,
-        task,
-        uploadedFiles: [],
-      })
-    } catch (emailError) {
+    void sendSubmissionEmail({
+      submission: Submission.toClient(submission),
+      user: submission.user,
+      task,
+    }).catch((emailError) => {
       console.error('Failed to send Shared Secrets auto-submission email.', emailError)
-    }
+    })
   }
 
   if (!hasCompletedSharedSecrets) {
@@ -136,11 +139,7 @@ authRoutes.post('/login', async (request, response, next) => {
       console.error('Failed to award first-login bonus.', loginBonusError)
     }
 
-    try {
-      await bootstrapSharedSecretsForUser(authenticatedUser)
-    } catch (bootstrapError) {
-      console.error('Failed to bootstrap Shared Secrets completion for login.', bootstrapError)
-    }
+    bootstrapSharedSecretsInBackground(authenticatedUser)
 
     return response.json({
       token: createToken(authenticatedUser),

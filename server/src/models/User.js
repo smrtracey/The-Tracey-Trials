@@ -56,6 +56,10 @@ const userSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    judgeAdjustmentPoints: {
+      type: Number,
+      default: 0,
+    },
     loginBonusAwardedAt: {
       type: Date,
       default: undefined,
@@ -91,6 +95,7 @@ userSchema.methods.toClient = function toClient() {
     completedTaskNumbers: this.completedTaskNumbers,
     loginBonusRank: this.loginBonusRank,
     loginBonusPoints: this.loginBonusPoints,
+    judgeAdjustmentPoints: this.judgeAdjustmentPoints,
     mustChangePassword: this.mustChangePassword,
     role: this.role,
   }

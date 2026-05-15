@@ -179,7 +179,7 @@ judgeRoutes.get('/long-game/rounds', async (_request, response, next) => {
 judgeRoutes.get('/leaderboard', async (_request, response, next) => {
   try {
     const contestants = await User.find({ role: 'contestant' })
-      .select('username displayName contestantNumber completedTaskNumbers loginBonusPoints loginBonusRank')
+      .select('username displayName contestantNumber completedTaskNumbers loginBonusPoints loginBonusRank judgeAdjustmentPoints')
       .sort({ contestantNumber: 1 })
       .lean()
 
@@ -204,10 +204,14 @@ judgeRoutes.get('/leaderboard', async (_request, response, next) => {
         username: contestant.username,
         displayName: contestant.displayName,
         contestantNumber: contestant.contestantNumber,
-        longGamePoints: (pointsLookup.get(contestant.username) ?? 0) + (contestant.loginBonusPoints ?? 0),
+        longGamePoints:
+          (pointsLookup.get(contestant.username) ?? 0) +
+          (contestant.loginBonusPoints ?? 0) +
+          (contestant.judgeAdjustmentPoints ?? 0),
         completedTaskNumbers: contestant.completedTaskNumbers ?? [],
         loginBonusPoints: contestant.loginBonusPoints ?? 0,
         loginBonusRank: contestant.loginBonusRank ?? null,
+        judgeAdjustmentPoints: contestant.judgeAdjustmentPoints ?? 0,
       }))
       .sort((first, second) => {
         if (second.longGamePoints !== first.longGamePoints) {
@@ -222,6 +226,41 @@ judgeRoutes.get('/leaderboard', async (_request, response, next) => {
       }))
 
     return response.json({ leaderboard })
+  } catch (error) {
+    return next(error)
+  }
+})
+
+judgeRoutes.patch('/leaderboard/:username/points', async (request, response, next) => {
+  const normalizedUsername = request.params.username?.trim().toLowerCase()
+  const { judgeAdjustmentPoints } = request.body ?? {}
+
+  if (!normalizedUsername) {
+    return response.status(400).json({ message: 'A contestant username is required.' })
+  }
+
+  if (!Number.isInteger(judgeAdjustmentPoints)) {
+    return response.status(400).json({ message: 'judgeAdjustmentPoints must be an integer.' })
+  }
+
+  try {
+    const contestant = await User.findOneAndUpdate(
+      { username: normalizedUsername, role: 'contestant' },
+      { $set: { judgeAdjustmentPoints } },
+      {
+        new: true,
+        runValidators: true,
+      },
+    ).select('username judgeAdjustmentPoints')
+
+    if (!contestant) {
+      return response.status(404).json({ message: 'Contestant not found.' })
+    }
+
+    return response.json({
+      username: contestant.username,
+      judgeAdjustmentPoints: contestant.judgeAdjustmentPoints ?? 0,
+    })
   } catch (error) {
     return next(error)
   }

@@ -1112,7 +1112,7 @@
 .submissions-card,
 .long-game-overview-card,
 .leaderboard-card {
-  height: 477px;
+  height: 575px;
 }
 
 .funds-panel-card {
@@ -1326,7 +1326,7 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
-  padding: 10px;
+  padding: 0 10px 10px;
 }
 
 .submissions-card .judge-table-wrap {
@@ -1406,6 +1406,54 @@
   cursor: pointer;
   padding: 0;
   text-align: left;
+}
+
+.leaderboard-points-cell {
+  display: inline-flex;
+  align-items: center;
+}
+
+.leaderboard-card .judge-table th,
+.leaderboard-card .judge-table td {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.leaderboard-editor {
+  display: inline-grid;
+  grid-template-columns: 34px 72px 34px auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.leaderboard-adjust-button,
+.leaderboard-save-button {
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-h);
+  font: inherit;
+  font-weight: 700;
+  min-height: 34px;
+  cursor: pointer;
+}
+
+.leaderboard-adjust-button:disabled,
+.leaderboard-save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.leaderboard-adjust-input {
+  min-width: 0;
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  padding: 0 10px;
 }
 
 .judge-media-grid {

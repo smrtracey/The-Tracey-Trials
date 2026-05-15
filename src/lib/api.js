@@ -206,6 +206,17 @@ export async function fetchJudgeLeaderboard(token) {
   })
 }
 
+export async function updateJudgeLeaderboardPoints(token, username, judgeAdjustmentPoints) {
+  return request(`/api/judge/leaderboard/${encodeURIComponent(username)}/points`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ judgeAdjustmentPoints }),
+  })
+}
+
 export async function fetchJudgeFundRequests(token) {
   return request('/api/judge/funds', {
     headers: {

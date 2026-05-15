@@ -17,9 +17,25 @@ import {
   fetchJudgeSubmissions,
   fetchJudgeTasks,
   markSubmissionDone as apiMarkSubmissionDone,
+  updateJudgeLeaderboardPoints,
 } from '../lib/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+
+function sortLeaderboardEntries(entries) {
+  return [...entries]
+    .sort((first, second) => {
+      if (second.longGamePoints !== first.longGamePoints) {
+        return second.longGamePoints - first.longGamePoints;
+      }
+
+      return first.contestantNumber - second.contestantNumber;
+    })
+    .map((entry, index) => ({
+      ...entry,
+      rank: index + 1,
+    }));
+}
 
 function JudgeDashboardPage() {
   const { token, signOut } = useAuth();
@@ -35,6 +51,8 @@ function JudgeDashboardPage() {
   const [searchFilter, setSearchFilter] = useState('');
   const [activeSubmissionId, setActiveSubmissionId] = useState('');
   const [selectedLongGameRound, setSelectedLongGameRound] = useState(null);
+  const [leaderboardSaveError, setLeaderboardSaveError] = useState('');
+  const [savingLeaderboardUsername, setSavingLeaderboardUsername] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -270,6 +288,37 @@ function JudgeDashboardPage() {
     await apiMarkSubmissionDone(token, submissionId, done);
   }
 
+  async function handleLeaderboardPointsSave(username, judgeAdjustmentPoints) {
+    setLeaderboardSaveError('');
+    setSavingLeaderboardUsername(username);
+
+    try {
+      await updateJudgeLeaderboardPoints(token, username, judgeAdjustmentPoints);
+      setLeaderboard((current) =>
+        sortLeaderboardEntries(
+          current.map((entry) => {
+            if (entry.username !== username) {
+              return entry;
+            }
+
+            const previousAdjustment = entry.judgeAdjustmentPoints ?? 0;
+            const adjustmentDelta = judgeAdjustmentPoints - previousAdjustment;
+
+            return {
+              ...entry,
+              judgeAdjustmentPoints,
+              longGamePoints: (entry.longGamePoints ?? 0) + adjustmentDelta,
+            };
+          }),
+        ),
+      );
+    } catch (saveError) {
+      setLeaderboardSaveError(saveError.message);
+    } finally {
+      setSavingLeaderboardUsername('');
+    }
+  }
+
   return (
     <main className="app-shell">
       <section className="judge-dashboard-layout">
@@ -324,6 +373,9 @@ function JudgeDashboardPage() {
             leaderboardRows={leaderboardRows}
             isLoading={isLoading}
             navigate={navigate}
+            onSavePoints={handleLeaderboardPointsSave}
+            saveError={leaderboardSaveError}
+            savingUsername={savingLeaderboardUsername}
           />
           <FundsRequestsPanel
             leaderboardRows={leaderboardRows}

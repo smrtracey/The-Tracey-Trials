@@ -1,6 +1,25 @@
 import React, { useState } from 'react';
 import DownloadRenameModal from '../DownloadRenameModal';
 
+function formatSubmissionDate(value) {
+  if (!value) {
+    return '-';
+  }
+
+  const parsedDate = new Date(value);
+  if (!Number.isNaN(parsedDate.getTime())) {
+    return parsedDate.toLocaleString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).replace(',', '');
+  }
+
+  return value;
+}
+
 export default function SubmissionSidePanel({
   activeSubmissionId,
   setActiveSubmissionId,
@@ -23,6 +42,7 @@ export default function SubmissionSidePanel({
   if (!submission) return null;
   const taskLabel = submission.taskLabel || getTaskLabel(submission.taskNumber);
   const hasMedia = (Array.isArray(submission.mediaItems) && submission.mediaItems.length > 0) || submission.mediaType ? 'Yes' : 'No';
+  const submittedAt = formatSubmissionDate(submission.createdAt);
   const [downloadState, setDownloadState] = useState({ isOpen: false, url: '', fileName: '' });
 
   return (
@@ -69,7 +89,7 @@ export default function SubmissionSidePanel({
               {submission.done ? 'Finished' : 'New'}
             </span>
             <strong>Task: {taskLabel}</strong>
-            <span>Submitted: {new Date(submission.createdAt).toLocaleString('en-IE')}</span>
+            <span>Submitted: {submittedAt}</span>
             <span>Contestant: {submission.displayName}</span>
             <span>Text: {submission.textBody || '-'}</span>
             <span>Media: {hasMedia}</span>

@@ -35,6 +35,13 @@ function formatScheduledDateTime(value) {
   });
 }
 
+function serializeScheduledDateTime(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
 export default function NotificationPanel({ contestants, token }) {
   const [notifications, setNotifications] = useState([emptyNotification()]);
   const [isSendingNotification, setIsSendingNotification] = useState(false);
@@ -376,15 +383,22 @@ export default function NotificationPanel({ contestants, token }) {
                               className="button"
                               style={{ minWidth: 100 }}
                               onClick={async () => {
+                                const serializedScheduledFor = serializeScheduledDateTime(scheduledDateTime);
+
+                                if (!serializedScheduledFor) {
+                                  setNotifyResult('Please choose a valid scheduled date and time.');
+                                  return;
+                                }
+
                                 try {
                                   await saveNotificationSchema(token, {
                                     name: scheduledName.trim(),
                                     notifications,
                                     kind: 'scheduled',
-                                    scheduledFor: scheduledDateTime,
+                                    scheduledFor: serializedScheduledFor,
                                   });
                                   setShowScheduleModal(false);
-                                  setNotifyResult(`Scheduled ${scheduledName.trim()} for ${scheduledDateTime}`);
+                                  setNotifyResult(`Scheduled ${scheduledName.trim()} for ${formatScheduledDateTime(serializedScheduledFor)}`);
                                   setScheduledName('');
                                   setScheduledDateTime('');
                                   setNotifications([emptyNotification()]);

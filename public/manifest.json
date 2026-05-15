@@ -9,11 +9,11 @@
   "theme_color": "#0f0f13",
   "orientation": "portrait-primary",
   "icons": [
-    {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+       {
+      "src": "/icon-ttt-180px.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icon-ttt-192px.png",

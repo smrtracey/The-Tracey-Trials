@@ -13,7 +13,8 @@
     "start": "node server/src/server.js",
     "seed:users": "node server/src/scripts/seedUsers.js",
     "seed:tasks": "node server/src/scripts/seedTasks.js",
-    "seed:late-stage": "node server/src/scripts/seedLateStageData.js"
+    "seed:late-stage": "node server/src/scripts/seedLateStageData.js",
+    "seed:mid-game": "node server/src/scripts/seedMidGameData.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

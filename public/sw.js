@@ -1,5 +1,32 @@
 const CACHE_NAME = 'tracey-trials-v1';
 
+function shouldBypassRequest(request) {
+  const url = new URL(request.url);
+
+  if (request.method !== 'GET') {
+    return true;
+  }
+
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    return true;
+  }
+
+  if (url.origin !== self.location.origin) {
+    return true;
+  }
+
+  if (
+    url.pathname.startsWith('/src/') ||
+    url.pathname.startsWith('/node_modules/') ||
+    url.pathname.startsWith('/@vite/') ||
+    url.pathname === '/vite.svg'
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 // Cache the app shell on install
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -26,6 +53,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
+  if (shouldBypassRequest(request)) {
+    return;
+  }
+
   // Let API and upload requests always go to the network (no caching)
   if (request.url.includes('/api/') || request.url.includes('/uploads/')) {
     return;
@@ -36,8 +67,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
           return response;
         })
         .catch(() => caches.match('/index.html'))

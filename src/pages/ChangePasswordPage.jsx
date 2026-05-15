@@ -13,7 +13,6 @@ function ChangePasswordPage() {
   const [formState, setFormState] = useState({
     newPassword: '',
     confirmPassword: '',
-    contactEmail: '',
   })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -53,7 +52,7 @@ function ChangePasswordPage() {
       <section className="screen-card">
         <div className="title-block login-title-block">
           <h1 className="fun-title">Set your new password</h1>
-          <p>This is required once before you can access submissions. Add your contact email too.</p>
+          <p>This is required once before you can access submissions.</p>
         </div>
 
         {error ? <div className="error-banner">{error}</div> : null}
@@ -86,21 +85,6 @@ function ChangePasswordPage() {
               onChange={(event) =>
                 setFormState((current) => ({ ...current, confirmPassword: event.target.value }))
               }
-              required
-            />
-          </div>
-
-          <div className="field">
-            <label htmlFor="contactEmail">Contact email</label>
-            <input
-              id="contactEmail"
-              type="email"
-              autoComplete="email"
-              value={formState.contactEmail}
-              onChange={(event) =>
-                setFormState((current) => ({ ...current, contactEmail: event.target.value }))
-              }
-              placeholder="name@example.com"
               required
             />
           </div>

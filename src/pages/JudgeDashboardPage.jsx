@@ -21,7 +21,6 @@ import {
 } from '../lib/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
-const TEST_LONG_GAME_REFERENCE_DATE = new Date('2026-05-22T12:00:00.000Z');
 
 function normalizeChoiceForScoring(choice) {
   return choice === 'no vote' ? 'cooperate' : choice;
@@ -224,7 +223,7 @@ function JudgeDashboardPage() {
 
   const currentRoundNumber = useMemo(() => {
     if (!longGameRounds.length) return null;
-    const today = TEST_LONG_GAME_REFERENCE_DATE;
+    const today = new Date();
     let current = longGameRounds[0];
     for (const round of longGameRounds) {
       if (new Date(round.startDate) <= today && new Date(round.startDate) > new Date(current.startDate)) {
@@ -314,7 +313,6 @@ function JudgeDashboardPage() {
             const adjustmentDelta = judgeAdjustmentPoints - previousAdjustment;
 
             return {
-              ...entry,
               judgeAdjustmentPoints,
               longGamePoints: (entry.longGamePoints ?? 0) + adjustmentDelta,
             };

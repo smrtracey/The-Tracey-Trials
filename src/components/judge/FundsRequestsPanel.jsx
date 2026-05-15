@@ -131,7 +131,7 @@ export default function FundsRequestsPanel({ leaderboardRows, isLoading, token }
                 </thead>
                 <tbody>
                   {playerRows.map((entry) => (
-                    <tr key={entry.username}>
+                    <tr key={entry.username} className={entry.pendingCount > 0 ? 'judge-row-unresolved' : ''}>
                       <td>{entry.displayName}</td>
                       <td>{formatCurrency(entry.borrowed)}</td>
                       <td>{formatCurrency(entry.remaining)}</td>

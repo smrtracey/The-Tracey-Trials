@@ -47,7 +47,6 @@ export async function changePassword({
   token,
   newPassword,
   confirmPassword,
-  contactEmail,
 }) {
   return request('/api/auth/change-password', {
     method: 'POST',
@@ -58,7 +57,6 @@ export async function changePassword({
     body: JSON.stringify({
       newPassword,
       confirmPassword,
-      contactEmail,
     }),
   })
 }

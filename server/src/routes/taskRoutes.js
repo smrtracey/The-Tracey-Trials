@@ -8,17 +8,16 @@ import { User } from '../models/User.js'
 import { resolveMatchupPoints } from '../services/longGameScoringService.js'
 
 const taskRoutes = Router()
-const TEST_LONG_GAME_REFERENCE_DATE = new Date('2026-05-22T12:00:00.000Z')
 
 function getLongGameReferenceDate() {
   if (!env.longGameDateOverride) {
-    return TEST_LONG_GAME_REFERENCE_DATE
+    return new Date()
   }
 
   const parsed = new Date(`${env.longGameDateOverride}T12:00:00.000Z`)
 
   if (Number.isNaN(parsed.getTime())) {
-    return TEST_LONG_GAME_REFERENCE_DATE
+    return new Date()
   }
 
   return parsed

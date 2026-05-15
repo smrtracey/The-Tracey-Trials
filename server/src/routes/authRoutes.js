@@ -147,9 +147,7 @@ authRoutes.get('/me', requireAuth, (request, response) => {
 
 authRoutes.post('/change-password', requireAuth, async (request, response, next) => {
   try {
-    const { newPassword = '', confirmPassword = '', contactEmail = '' } = request.body
-    const normalizedEmail = contactEmail.trim().toLowerCase()
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const { newPassword = '', confirmPassword = '' } = request.body
 
     if (!request.user.mustChangePassword) {
       return response.status(400).json({
@@ -157,18 +155,8 @@ authRoutes.post('/change-password', requireAuth, async (request, response, next)
       })
     }
 
-    if (!newPassword || !confirmPassword || !normalizedEmail) {
-      return response.status(400).json({ message: 'Password fields and contact email are required.' })
-    }
-
-    if (!emailRegex.test(normalizedEmail)) {
-      return response.status(400).json({ message: 'Please enter a valid email address.' })
-    }
-
-    const emailOwner = await User.findOne({ contactEmail: normalizedEmail, _id: { $ne: request.user._id } })
-
-    if (emailOwner) {
-      return response.status(409).json({ message: 'That email is already in use by another user.' })
+    if (!newPassword || !confirmPassword) {
+      return response.status(400).json({ message: 'New password and confirmation are required.' })
     }
 
     if (newPassword.length < 8) {
@@ -182,7 +170,6 @@ authRoutes.post('/change-password', requireAuth, async (request, response, next)
     request.user.passwordHash = await bcrypt.hash(newPassword, 10)
     request.user.mustChangePassword = false
     request.user.passwordChangedAt = new Date()
-    request.user.contactEmail = normalizedEmail
     await request.user.save()
 
     return response.json({

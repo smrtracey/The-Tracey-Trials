@@ -71,7 +71,7 @@ export default function LongGameOverview({
           <label htmlFor="long-game-round-select" style={{ fontWeight: 500 }}>Round:</label>
           <select
             id="long-game-round-select"
-            value={activeLongGameRound}
+            value={activeLongGameRound ?? ''}
             onChange={e => {
               const val = Number(e.target.value);
               if (val === currentRoundNumber) setSelectedLongGameRound(null);
@@ -79,6 +79,9 @@ export default function LongGameOverview({
             }}
             style={{ fontSize: '1em', padding: '4px 8px', borderRadius: 8, minWidth: 38, width: 'auto', textAlign: 'center' }}
           >
+            <option value="" disabled>
+              Select
+            </option>
             {longGameRounds
               .filter(r => r.roundNumber <= currentRoundNumber)
               .map(r => (

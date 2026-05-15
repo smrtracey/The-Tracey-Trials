@@ -13,6 +13,8 @@ function setFilePickerOpenState(isOpen) {
 
 const MAX_MEDIA_FILES = 10
 const LARGE_VIDEO_WARNING_BYTES = 500 * 1024 * 1024
+const SMALL_UPLOAD_BYTES = 15 * 1024 * 1024
+const MEDIUM_UPLOAD_BYTES = 100 * 1024 * 1024
 
 function restoreRootScrollPosition(scrollTop) {
   const rootElement = document.getElementById('root')
@@ -49,6 +51,22 @@ function mergeUniqueFiles(existingFiles, nextFiles) {
   return merged.slice(0, MAX_MEDIA_FILES)
 }
 
+function getUploadTimingHint(totalBytes) {
+  if (totalBytes <= 0) {
+    return ''
+  }
+
+  if (totalBytes <= SMALL_UPLOAD_BYTES) {
+    return 'Small upload'
+  }
+
+  if (totalBytes <= MEDIUM_UPLOAD_BYTES) {
+    return 'May take a little while'
+  }
+
+  return 'This could take several minutes'
+}
+
 function SubmissionForm({
   isSubmitting,
   onSubmit,
@@ -73,6 +91,14 @@ function SubmissionForm({
 
     return `${files.length} files selected`
   }, [files])
+  const totalUploadBytes = useMemo(
+    () => files.reduce((sum, file) => sum + file.size, 0),
+    [files],
+  )
+  const uploadTimingHint = useMemo(
+    () => getUploadTimingHint(totalUploadBytes),
+    [totalUploadBytes],
+  )
   const shouldShowLargeVideoWarning = useMemo(
     () => files.some((file) => file.type.startsWith('video/') && file.size >= LARGE_VIDEO_WARNING_BYTES),
     [files],
@@ -84,7 +110,7 @@ function SubmissionForm({
     taskNumber: 'Task name',
     taskPlaceholder: 'Choose a task',
     mediaLabel: 'Photos or videos',
-    mediaHint: 'Attach up to 10 photos/videos, a text body, or both. Phone videos should usually upload fine. If you filmed on a GoPro, compress or export the video before uploading.',
+    mediaHint: 'Attach up to 10 photos, a video, a text body, or both. Uploading videos can be a slow process. Especially GoPro footage. I recommend that you compress the file before uploading.',
     textLabel: 'Body of text',
     textPlaceholder: 'Write your task response here',
     previewAlt: 'Selected media preview',
@@ -266,6 +292,7 @@ function SubmissionForm({
 
       <div className="mini-card">
         <strong>{files.length > 0 ? fileName : copy.fileEmpty}</strong>
+        {files.length > 0 && uploadTimingHint ? <p className="meta-text">{uploadTimingHint}</p> : null}
         {!hasSubmissionContent ? (
           <p className="meta-text">
             {hasFixedTaskNumber ? copy.footerHint : copy.footerHintWithTask}

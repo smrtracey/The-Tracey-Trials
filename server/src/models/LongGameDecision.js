@@ -31,7 +31,7 @@ const longGameDecisionSchema = new mongoose.Schema(
     },
     choice: {
       type: String,
-      enum: ['cooperate', 'betray'],
+      enum: ['cooperate', 'betray', 'no vote'],
       required: true,
     },
     autoCooperate: {

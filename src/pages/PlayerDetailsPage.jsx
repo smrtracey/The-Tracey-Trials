@@ -51,6 +51,18 @@ export default function PlayerDetailsPage() {
   }, [username, token]);
 
   const player = leaderboard.find(e => e.username === username);
+
+  function formatLongGameChoice(choice, isAutoFilled) {
+    if (!choice) {
+      return <span className="muted">No vote</span>;
+    }
+
+    if (choice === 'no vote' || isAutoFilled) {
+      return <span style={{ color: '#1976d2' }}>No Vote</span>;
+    }
+
+    return choice.charAt(0).toUpperCase() + choice.slice(1);
+  }
   
   const completedTaskNumbers = player?.completedTaskNumbers || [];
   const completedTasks = tasks.filter(t => completedTaskNumbers.includes(t.taskNumber));
@@ -283,7 +295,7 @@ export default function PlayerDetailsPage() {
                       <tr key={i}>
                         <td>{lg.roundNumber}</td>
                         <td>{lg.isBye ? <span style={{ color: '#dc2626', fontWeight: 600 }}>BYE</span> : lg.opponent}</td>
-                        <td>{lg.isBye ? <span style={{ color: '#dc2626', fontWeight: 600 }}>BYE</span> : (lg.choice ? (lg.autoCooperate ? <span style={{ color: '#1976d2' }}>Cooperate (no vote)</span> : lg.choice.charAt(0).toUpperCase() + lg.choice.slice(1)) : <span className="muted">No vote</span>)}</td>
+                        <td>{lg.isBye ? <span style={{ color: '#dc2626', fontWeight: 600 }}>BYE</span> : formatLongGameChoice(lg.choice, lg.autoCooperate)}</td>
                         <td>{lg.isBye ? <span style={{ color: '#dc2626', fontWeight: 600 }}>BYE</span> : (typeof lg.points === 'number' ? <strong>{lg.points}</strong> : <span className="muted">Pending</span>)}</td>
                       </tr>
                     ))}

@@ -5,18 +5,20 @@ import { LongGameDecision } from '../models/LongGameDecision.js'
 import { requireAuth } from '../middleware/auth.js'
 import { Task } from '../models/Task.js'
 import { User } from '../models/User.js'
+import { resolveMatchupPoints } from '../services/longGameScoringService.js'
 
 const taskRoutes = Router()
+const TEST_LONG_GAME_REFERENCE_DATE = new Date('2026-05-22T12:00:00.000Z')
 
 function getLongGameReferenceDate() {
   if (!env.longGameDateOverride) {
-    return new Date()
+    return TEST_LONG_GAME_REFERENCE_DATE
   }
 
   const parsed = new Date(`${env.longGameDateOverride}T12:00:00.000Z`)
 
   if (Number.isNaN(parsed.getTime())) {
-    return new Date()
+    return TEST_LONG_GAME_REFERENCE_DATE
   }
 
   return parsed
@@ -96,73 +98,6 @@ function getMatchupKey(roundNumber, usernameA, usernameB) {
   const [firstPlayer, secondPlayer] = [usernameA, usernameB].map((value) => value.trim().toLowerCase()).sort()
 
   return `${roundNumber}:${firstPlayer}:${secondPlayer}`
-}
-
-function getLongGamePointsForChoices(choiceA, choiceB) {
-  if (choiceA === 'cooperate' && choiceB === 'cooperate') {
-    return {
-      pointsA: 1,
-      pointsB: 1,
-    }
-  }
-
-  if (choiceA === 'betray' && choiceB === 'cooperate') {
-    return {
-      pointsA: 3,
-      pointsB: 0,
-    }
-  }
-
-  if (choiceA === 'cooperate' && choiceB === 'betray') {
-    return {
-      pointsA: 0,
-      pointsB: 3,
-    }
-  }
-
-  return {
-    pointsA: 0,
-    pointsB: 0,
-  }
-}
-
-async function resolveMatchupPoints(roundNumber, matchupKey) {
-  const decisions = await LongGameDecision.find({ roundNumber, matchupKey })
-    .select('_id username choice awardedPoints')
-    .sort({ createdAt: 1 })
-
-  if (decisions.length < 2) {
-    return
-  }
-
-  const [firstDecision, secondDecision] = decisions
-  const { pointsA, pointsB } = getLongGamePointsForChoices(firstDecision.choice, secondDecision.choice)
-  const resolvedAt = new Date()
-
-  await LongGameDecision.bulkWrite([
-    {
-      updateOne: {
-        filter: { _id: firstDecision._id },
-        update: {
-          $set: {
-            awardedPoints: pointsA,
-            resolvedAt,
-          },
-        },
-      },
-    },
-    {
-      updateOne: {
-        filter: { _id: secondDecision._id },
-        update: {
-          $set: {
-            awardedPoints: pointsB,
-            resolvedAt,
-          },
-        },
-      },
-    },
-  ])
 }
 
 function assignedTaskFilterForUser(user) {

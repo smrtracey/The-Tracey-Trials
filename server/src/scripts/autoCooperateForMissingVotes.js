@@ -1,8 +1,9 @@
 import mongoose from 'mongoose';
 import { connectDatabase } from '../config/db.js';
 import { longGameSchedule } from '../data/longGameSchedule.js';
-import { LongGameDecision } from '../models/LongGameDecision.js';
-import { User } from '../models/User.js';
+import { fillMissingVotesForCompletedRounds } from '../services/longGameNoVoteService.js';
+
+const isDirectExecution = process.argv[1] && import.meta.url === new URL(`file://${process.argv[1].replace(/\\/g, '/')}`).href;
 
 async function autoCooperateForMissingVotes(roundNumber) {
   await connectDatabase();
@@ -15,51 +16,18 @@ async function autoCooperateForMissingVotes(roundNumber) {
     throw new Error('Round is not over yet');
   }
 
-  // Get all users
-  const users = await User.find({ role: 'contestant' }).lean();
-  const usersByUsername = new Map(users.map(u => [u.username.trim().toLowerCase(), u]));
-
-  // Get all decisions for this round
-  const decisions = await LongGameDecision.find({ roundNumber }).lean();
-  const decided = new Set(decisions.map(d => d.username + ':' + d.opponentUsername));
-
-  // For each matchup, check for missing votes
-  const ops = [];
-  for (const [playerA, playerB] of round.matchups) {
-    for (const [user, opponent] of [[playerA, playerB], [playerB, playerA]]) {
-      const key = user + ':' + opponent;
-      if (decided.has(key)) continue;
-      const userObj = usersByUsername.get(user);
-      if (!userObj) continue;
-      ops.push({
-        insertOne: {
-          document: {
-            user: userObj._id,
-            roundNumber,
-            username: user,
-            opponentUsername: opponent,
-            matchupKey: `${roundNumber}:${[user, opponent].sort().join(':')}`,
-            choice: 'cooperate',
-            autoCooperate: true,
-            awardedPoints: null, // Will be resolved by resolveMatchupPoints
-            resolvedAt: null,
-            createdAt: new Date(round.endDate + 'T23:59:59Z'),
-            updatedAt: new Date(round.endDate + 'T23:59:59Z'),
-          }
-        }
-      });
-    }
-  }
-  if (ops.length) {
-    await LongGameDecision.bulkWrite(ops);
-    console.log(`Inserted ${ops.length} auto-cooperate decisions for round ${roundNumber}`);
+  const beforeCount = await mongoose.connection.db.collection('longgamedecisions').countDocuments({ roundNumber });
+  const insertedCount = await fillMissingVotesForCompletedRounds();
+  const afterCount = await mongoose.connection.db.collection('longgamedecisions').countDocuments({ roundNumber });
+  if (afterCount > beforeCount) {
+    console.log(`Inserted ${afterCount - beforeCount} no-vote decisions for round ${roundNumber}`);
   } else {
     console.log('No missing votes to fill.');
   }
   mongoose.connection.close();
 }
 
-if (require.main === module) {
+if (isDirectExecution) {
   const round = process.argv[2];
   if (!round) {
     console.error('Usage: node autoCooperateForMissingVotes.js <roundNumber>');

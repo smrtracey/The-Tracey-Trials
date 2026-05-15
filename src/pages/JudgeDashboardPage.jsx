@@ -21,6 +21,11 @@ import {
 } from '../lib/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+const TEST_LONG_GAME_REFERENCE_DATE = new Date('2026-05-22T12:00:00.000Z');
+
+function normalizeChoiceForScoring(choice) {
+  return choice === 'no vote' ? 'cooperate' : choice;
+}
 
 function sortLeaderboardEntries(entries) {
   return [...entries]
@@ -219,7 +224,7 @@ function JudgeDashboardPage() {
 
   const currentRoundNumber = useMemo(() => {
     if (!longGameRounds.length) return null;
-    const today = new Date();
+    const today = TEST_LONG_GAME_REFERENCE_DATE;
     let current = longGameRounds[0];
     for (const round of longGameRounds) {
       if (new Date(round.startDate) <= today && new Date(round.startDate) > new Date(current.startDate)) {
@@ -236,15 +241,18 @@ function JudgeDashboardPage() {
       filteredMatchups
         .filter((matchup) => matchup.roundNumber === activeLongGameRound)
         .map((matchup) => {
+          const isPreviousRound = currentRoundNumber !== null && matchup.roundNumber < currentRoundNumber;
           // Compute result string and color for display
           let result = '';
           let resultColor = '';
-          const betrayA = (matchup.choiceA && matchup.choiceA.toLowerCase() === 'betray');
-          const betrayB = (matchup.choiceB && matchup.choiceB.toLowerCase() === 'betray');
-          const coopA = (matchup.choiceA && matchup.choiceA.toLowerCase() === 'cooperate');
-          const coopB = (matchup.choiceB && matchup.choiceB.toLowerCase() === 'cooperate');
+          const scoredChoiceA = normalizeChoiceForScoring(matchup.choiceA);
+          const scoredChoiceB = normalizeChoiceForScoring(matchup.choiceB);
+          const betrayA = scoredChoiceA === 'betray';
+          const betrayB = scoredChoiceB === 'betray';
+          const coopA = scoredChoiceA === 'cooperate';
+          const coopB = scoredChoiceB === 'cooperate';
           if (matchup.unresolved) {
-            result = 'Pending';
+            result = isPreviousRound ? 'No Vote' : 'Pending';
             resultColor = '';
           } else if (betrayA && betrayB) {
             result = 'Loss';
@@ -266,13 +274,14 @@ function JudgeDashboardPage() {
           }
           return {
             ...matchup,
+            isPreviousRound,
             unresolvedLabel: matchup.unresolved ? 'Unresolved' : 'Resolved',
             totalPoints: (matchup.pointsA ?? 0) + (matchup.pointsB ?? 0),
             result,
             resultColor,
           };
         }),
-    [filteredMatchups, activeLongGameRound],
+    [filteredMatchups, activeLongGameRound, currentRoundNumber],
   );
 
   const leaderboardRows = useMemo(

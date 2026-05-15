@@ -1,5 +1,17 @@
 import React, { useEffect, useState } from 'react';
 
+function formatChoice(choice, fallback) {
+  if (!choice) {
+    return fallback;
+  }
+
+  if (choice === 'no vote') {
+    return 'No Vote';
+  }
+
+  return choice;
+}
+
 function formatRoundTimeLeft(endDate, nowTimestamp) {
   if (!endDate) {
     return null;
@@ -32,6 +44,7 @@ export default function LongGameOverview({
 }) {
   const [now, setNow] = useState(() => Date.now());
   const activeLongGameRound = selectedLongGameRound || currentRoundNumber;
+  const isViewingPreviousRound = currentRoundNumber !== null && activeLongGameRound < currentRoundNumber;
   // Find the bye for the active round
   const activeRoundObj = longGameRounds.find(r => r.roundNumber === activeLongGameRound);
   const byeUsername = activeRoundObj?.byeUsername;
@@ -104,7 +117,7 @@ export default function LongGameOverview({
                         {matchup.playerA.charAt(0).toUpperCase() + matchup.playerA.slice(1)}
                       </button>
                       <div>
-                        {matchup.choiceA ? matchup.choiceA : <span style={{ color: '#888' }}>Pending</span>}
+                        {matchup.choiceA ? formatChoice(matchup.choiceA, matchup.isPreviousRound ? 'No Vote' : 'Pending') : <span style={{ color: '#888' }}>{matchup.isPreviousRound ? 'No Vote' : 'Pending'}</span>}
                       </div>
                     </td>
                     <td>
@@ -116,7 +129,7 @@ export default function LongGameOverview({
                         {matchup.playerB.charAt(0).toUpperCase() + matchup.playerB.slice(1)}
                       </button>
                       <div>
-                        {matchup.choiceB ? matchup.choiceB : <span style={{ color: '#888' }}>Pending</span>}
+                        {matchup.choiceB ? formatChoice(matchup.choiceB, matchup.isPreviousRound ? 'No Vote' : 'Pending') : <span style={{ color: '#888' }}>{matchup.isPreviousRound ? 'No Vote' : 'Pending'}</span>}
                       </div>
                     </td>
                     <td style={matchup.resultColor ? { color: matchup.resultColor, fontWeight: 600 } : {}}>{matchup.result}</td>
@@ -145,7 +158,11 @@ export default function LongGameOverview({
           <div>
             <strong>Bye this round:</strong> {byeUsername.charAt(0).toUpperCase() + byeUsername.slice(1)}
           </div>
-          {roundTimeLeft ? (
+          {isViewingPreviousRound ? (
+            <div style={{ color: '#dc2626', fontWeight: 700 }}>
+              {`Round ${activeLongGameRound} is over`}
+            </div>
+          ) : roundTimeLeft ? (
             <div style={{ color: 'var(--text-soft)' }}>
               <strong style={{ color: 'var(--text-h)' }}>Round ends in:</strong> {` ${roundTimeLeft}`}
             </div>

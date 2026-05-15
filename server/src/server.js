@@ -1,11 +1,13 @@
 import { createApp } from './app.js'
 import { connectDatabase } from './config/db.js'
 import { env } from './config/env.js'
+import { startLongGameNoVoteProcessor } from './services/longGameNoVoteService.js'
 import { startScheduledNotificationProcessor } from './services/scheduledNotificationService.js'
 
 async function startServer() {
   try {
     await connectDatabase()
+    startLongGameNoVoteProcessor()
     startScheduledNotificationProcessor()
     const app = createApp()
 

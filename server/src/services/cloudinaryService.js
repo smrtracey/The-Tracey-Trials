@@ -1,62 +1,23 @@
-import { v2 as cloudinary } from 'cloudinary'
-import { env } from '../config/env.js'
+import path from 'path'
 
-let isConfigured = false
-const VIDEO_UPLOAD_CHUNK_SIZE_BYTES = 20 * 1024 * 1024
-
-function ensureCloudinaryConfigured() {
-  if (isConfigured) {
-    return
-  }
-
-  if (!env.cloudinaryCloudName || !env.cloudinaryApiKey || !env.cloudinaryApiSecret) {
-    throw new Error('Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.')
-  }
-
-  cloudinary.config({
-    cloud_name: env.cloudinaryCloudName,
-    api_key: env.cloudinaryApiKey,
-    api_secret: env.cloudinaryApiSecret,
-    secure: true,
-  })
-
-  isConfigured = true
-}
-
-function buildUploadOptions(file) {
-  return {
-    folder: env.cloudinaryUploadFolder,
-    use_filename: true,
-    unique_filename: true,
-    filename_override: file.originalname,
-  }
-}
-
-function buildOptimizedVideoUrl(publicId) {
-  return cloudinary.url(publicId, {
-    resource_type: 'video',
-    secure: true,
-    transformation: [
-      {
-        fetch_format: 'auto',
-        quality: 'auto:good',
-        video_codec: 'auto',
-      },
-    ],
-  })
-}
-
-function normalizeUploadedMediaItem(file, uploadResult, isVideo) {
-  const url = isVideo
-    ? buildOptimizedVideoUrl(uploadResult.public_id) || uploadResult.secure_url || uploadResult.url
-    : uploadResult.secure_url || uploadResult.url
-
+function buildLocalMediaItem(file) {
+  const isVideo = file.mimetype.startsWith('video/')
+  const fileName = file.filename ?? path.basename(file.path ?? '')
+  const url = fileName ? `/uploads/${fileName}` : ''
   const type = isVideo ? 'video' : 'image'
   const originalName = file.originalname ?? ''
 
   if (!url || !type) {
     const error = new Error(`Upload failed for ${originalName || 'media file'}. Please try again.`)
-    error.statusCode = 502
+    error.statusCode = 500
+    error.uploadContext = {
+      stage: 'local-file-mapping',
+      fileName: originalName,
+      storedFileName: fileName,
+      mimeType: file.mimetype,
+      size: file.size,
+      path: file.path ?? null,
+    }
     throw error
   }
 
@@ -64,41 +25,14 @@ function normalizeUploadedMediaItem(file, uploadResult, isVideo) {
     url,
     type,
     originalName,
-    publicId: uploadResult.public_id,
   }
 }
 
-async function uploadSubmissionFile(file) {
-  const isVideo = file.mimetype.startsWith('video/')
-  const uploadOptions = buildUploadOptions(file)
-
-  const uploadResult = isVideo
-    ? await cloudinary.uploader.upload_large(file.path, {
-        ...uploadOptions,
-        resource_type: 'video',
-        chunk_size: VIDEO_UPLOAD_CHUNK_SIZE_BYTES,
-      })
-    : await cloudinary.uploader.upload(file.path, {
-        ...uploadOptions,
-        resource_type: 'image',
-      })
-
-  return normalizeUploadedMediaItem(file, uploadResult, isVideo)
-}
-
 export async function uploadSubmissionFiles(files) {
-  ensureCloudinaryConfigured()
-
   const uploadedFiles = Array.isArray(files) ? files : []
   if (uploadedFiles.length === 0) {
     return []
   }
 
-  const results = []
-
-  for (const file of uploadedFiles) {
-    results.push(await uploadSubmissionFile(file))
-  }
-
-  return results
+  return uploadedFiles.map(buildLocalMediaItem)
 }

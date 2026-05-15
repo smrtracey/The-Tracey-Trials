@@ -8,6 +8,18 @@ import { uploadSubmissionFiles } from '../services/cloudinaryService.js'
 
 const submissionRoutes = Router()
 
+async function deleteUploadedFiles(files) {
+  await Promise.all(
+    files.map(async (file) => {
+      try {
+        await fs.unlink(file.path)
+      } catch {
+        // Ignore cleanup failures.
+      }
+    }),
+  )
+}
+
 submissionRoutes.use(requireAuth)
 submissionRoutes.use((request, response, next) => {
   if (request.user.mustChangePassword) {
@@ -44,10 +56,12 @@ submissionRoutes.post('/', upload.array('media', 10), async (request, response, 
     const hasTextBody = Boolean(textBody)
 
     if (!Number.isInteger(taskNumber) || taskNumber < 1) {
+      await deleteUploadedFiles(uploadedFiles)
       return response.status(400).json({ message: 'Please provide a valid task number.' })
     }
 
     if (!hasMedia && !hasTextBody) {
+      await deleteUploadedFiles(uploadedFiles)
       return response.status(400).json({
         message: 'Please attach a photo/video or enter a body of text before submitting.',
       })
@@ -56,12 +70,14 @@ submissionRoutes.post('/', upload.array('media', 10), async (request, response, 
     const task = await Task.findOne({ taskNumber }).select('taskNumber title')
 
     if (!task) {
+      await deleteUploadedFiles(uploadedFiles)
       return response.status(404).json({ message: 'Task not found for this submission.' })
     }
 
     const mediaItems = await uploadSubmissionFiles(uploadedFiles)
 
     if (mediaItems.some((item) => !item?.url || !item?.type)) {
+      await deleteUploadedFiles(uploadedFiles)
       return response.status(502).json({
         message: 'One or more uploaded files could not be processed. Please try again.',
       })
@@ -85,17 +101,8 @@ submissionRoutes.post('/', upload.array('media', 10), async (request, response, 
       submission: submissionData,
     })
   } catch (error) {
+    await deleteUploadedFiles(uploadedFiles)
     return next(error)
-  } finally {
-    await Promise.all(
-      uploadedFiles.map(async (file) => {
-        try {
-          await fs.unlink(file.path)
-        } catch {
-          // Ignore temp-file cleanup failures.
-        }
-      }),
-    )
   }
 })
 

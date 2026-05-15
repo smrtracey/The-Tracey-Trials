@@ -46,6 +46,28 @@ function buildOptimizedVideoUrl(publicId) {
   })
 }
 
+function normalizeUploadedMediaItem(file, uploadResult, isVideo) {
+  const url = isVideo
+    ? buildOptimizedVideoUrl(uploadResult.public_id) || uploadResult.secure_url || uploadResult.url
+    : uploadResult.secure_url || uploadResult.url
+
+  const type = isVideo ? 'video' : 'image'
+  const originalName = file.originalname ?? ''
+
+  if (!url || !type) {
+    const error = new Error(`Upload failed for ${originalName || 'media file'}. Please try again.`)
+    error.statusCode = 502
+    throw error
+  }
+
+  return {
+    url,
+    type,
+    originalName,
+    publicId: uploadResult.public_id,
+  }
+}
+
 async function uploadSubmissionFile(file) {
   const isVideo = file.mimetype.startsWith('video/')
   const uploadOptions = buildUploadOptions(file)
@@ -61,12 +83,7 @@ async function uploadSubmissionFile(file) {
         resource_type: 'image',
       })
 
-  return {
-    url: isVideo ? buildOptimizedVideoUrl(uploadResult.public_id) : uploadResult.secure_url,
-    type: isVideo ? 'video' : 'image',
-    originalName: file.originalname,
-    publicId: uploadResult.public_id,
-  }
+  return normalizeUploadedMediaItem(file, uploadResult, isVideo)
 }
 
 export async function uploadSubmissionFiles(files) {

@@ -61,6 +61,12 @@ submissionRoutes.post('/', upload.array('media', 10), async (request, response, 
 
     const mediaItems = await uploadSubmissionFiles(uploadedFiles)
 
+    if (mediaItems.some((item) => !item?.url || !item?.type)) {
+      return response.status(502).json({
+        message: 'One or more uploaded files could not be processed. Please try again.',
+      })
+    }
+
     const submission = await Submission.create({
       user: request.user._id,
       taskNumber,

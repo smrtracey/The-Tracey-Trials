@@ -12,6 +12,7 @@ function setFilePickerOpenState(isOpen) {
 }
 
 const MAX_MEDIA_FILES = 10
+const LARGE_VIDEO_WARNING_BYTES = 500 * 1024 * 1024
 
 function restoreRootScrollPosition(scrollTop) {
   const rootElement = document.getElementById('root')
@@ -72,6 +73,10 @@ function SubmissionForm({
 
     return `${files.length} files selected`
   }, [files])
+  const shouldShowLargeVideoWarning = useMemo(
+    () => files.some((file) => file.type.startsWith('video/') && file.size >= LARGE_VIDEO_WARNING_BYTES),
+    [files],
+  )
   const hasSubmissionContent = Boolean(files.length > 0 || textBody.trim())
   const copy = {
     fileEmpty: 'No file selected',
@@ -79,12 +84,14 @@ function SubmissionForm({
     taskNumber: 'Task name',
     taskPlaceholder: 'Choose a task',
     mediaLabel: 'Photos or videos',
-    mediaHint: 'Attach up to 10 photos/videos, a text body, or both.',
+    mediaHint: 'Attach up to 10 photos/videos, a text body, or both. Phone videos should usually upload fine. If you filmed on a GoPro, compress or export the video before uploading.',
     textLabel: 'Body of text',
     textPlaceholder: 'Write your task response here',
     previewAlt: 'Selected media preview',
     footerHint: 'Add either media, text, or both before submitting.',
     footerHintWithTask: 'Task name is required. Add either media, text, or both before submitting.',
+    largeVideoWarning:
+      'Large videos can take a while to upload. If this was filmed on a GoPro or other action camera, compress or export it before uploading for the best chance of success.',
     submitting: 'Submitting\u2026',
     submit: 'Submit task',
   }
@@ -254,6 +261,8 @@ function SubmissionForm({
           )}
         </div>
       ) : null}
+
+      {shouldShowLargeVideoWarning ? <div className="error-banner">{copy.largeVideoWarning}</div> : null}
 
       <div className="mini-card">
         <strong>{files.length > 0 ? fileName : copy.fileEmpty}</strong>

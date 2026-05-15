@@ -1032,6 +1032,18 @@
   margin-top: 8px;
 }
 
+.long-game-betray-button {
+  border-color: #dc2626;
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.long-game-betray-button:hover {
+  color: #ffffff;
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  border-color: #b91c1c;
+}
+
 .long-game-choice-active {
   border: 1px solid var(--accent-strong);
   background: var(--accent-bg);

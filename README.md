@@ -34,6 +34,7 @@ MONGODB_URI=mongodb://127.0.0.1:27017/tracey-trials
 JWT_SECRET=replace-with-a-long-random-secret
 PORT=4000
 CLIENT_ORIGIN=http://localhost:5173
+SUBMISSION_UPLOAD_LIMIT_MB=2048
 SEED_FIRST_NAMES=alex,blake,casey,devon,ellis,frankie,georgia,harper,indie,jordan,sean
 SEED_DEFAULT_PASSWORD=TraceyTrials2026!
 SEED_JUDGE_PASSWORD=Judge12345
@@ -75,6 +76,7 @@ Set these on the API service (`tracey-trials-api`):
 - `MONGODB_URI`
 - `JWT_SECRET`
 - `CLIENT_ORIGIN` (must exactly match your frontend URL, e.g. `https://tracey-trials-web.onrender.com`)
+- `SUBMISSION_UPLOAD_LIMIT_MB` (optional, per-file upload limit in MB for submission media; defaults to `2048`)
 - `SEED_FIRST_NAMES`
 - `SEED_DEFAULT_PASSWORD`
 - `SEED_JUDGE_PASSWORD`

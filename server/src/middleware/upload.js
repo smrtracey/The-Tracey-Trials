@@ -1,9 +1,12 @@
 import fs from 'fs'
 import path from 'path'
 import multer from 'multer'
+import { env } from '../config/env.js'
 
 const uploadDirectory = path.resolve('server/uploads')
 fs.mkdirSync(uploadDirectory, { recursive: true })
+
+const uploadLimitBytes = Math.max(1, env.submissionUploadLimitMb) * 1024 * 1024
 
 const storage = multer.diskStorage({
   destination: (_request, _file, callback) => {
@@ -31,6 +34,6 @@ export const upload = multer({
   storage,
   fileFilter: imageFileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024,
+    fileSize: uploadLimitBytes,
   },
 })

@@ -7,6 +7,7 @@ export const env = {
   mongoUri: process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/tracey-trials',
   jwtSecret: process.env.JWT_SECRET ?? 'change-me-in-production',
   clientOrigin: process.env.CLIENT_ORIGIN ?? 'http://localhost:5173',
+  submissionUploadLimitMb: Number(process.env.SUBMISSION_UPLOAD_LIMIT_MB ?? 2048),
   cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME ?? '',
   cloudinaryApiKey: process.env.CLOUDINARY_API_KEY ?? '',
   cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET ?? '',

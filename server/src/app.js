@@ -1,3 +1,4 @@
+import { existsSync } from 'fs'
 import cors from 'cors'
 import express from 'express'
 import path from 'path'
@@ -12,6 +13,9 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js'
 
 export function createApp() {
   const app = express()
+  const clientDistPath = path.resolve('dist')
+  const clientIndexPath = path.join(clientDistPath, 'index.html')
+  const hasClientBuild = existsSync(clientIndexPath)
 
   app.use(
     cors({
@@ -32,6 +36,15 @@ export function createApp() {
   app.use('/api/push', pushRoutes)
   app.use('/api/submissions', submissionRoutes)
   app.use('/api/tasks', taskRoutes)
+
+  if (hasClientBuild) {
+    app.use(express.static(clientDistPath))
+
+    app.get(/^(?!\/api(?:\/|$)).*/, (_request, response) => {
+      response.sendFile(clientIndexPath)
+    })
+  }
+
   app.use(notFoundHandler)
   app.use(errorHandler)
 

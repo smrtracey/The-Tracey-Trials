@@ -29,6 +29,12 @@ const taskSchema = new mongoose.Schema(
       default: 'all',
       required: true,
     },
+    taskSource: {
+      type: String,
+      enum: ['core', 'additional'],
+      default: 'core',
+      required: true,
+    },
     assignedUserIds: {
       type: [mongoose.Schema.Types.ObjectId],
       ref: 'User',

@@ -33,7 +33,7 @@ submissionRoutes.use((request, response, next) => {
 
 submissionRoutes.get('/', async (_request, response, next) => {
   try {
-    const submissions = await Submission.find()
+    const submissions = await Submission.find({ user: _request.user._id })
       .sort({ createdAt: -1 })
       .limit(24)
       .populate('user')

@@ -128,6 +128,53 @@
   gap: 16px;
 }
 
+.submission-group-list {
+  display: grid;
+  gap: 14px;
+}
+
+.submission-group-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-soft);
+  padding: 14px;
+}
+
+.submission-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--text-h);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.submission-group-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.submission-group-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
 .field {
   display: grid;
   gap: 8px;
@@ -582,6 +629,39 @@
   box-shadow: none;
 }
 
+.hero-section-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.hero-section-link {
+  border-radius: 999px;
+  padding: 8px 14px;
+}
+
+.scroll-to-top-button {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 20;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scroll-to-top-icon {
+  width: 20px;
+  height: 20px;
+}
+
 .pwa-install-card {
   padding: 18px;
   text-align: left;
@@ -724,6 +804,11 @@
   margin: 0;
 }
 
+.tasks-panel-header--static {
+  min-height: 0;
+  padding-right: 0;
+}
+
 .submission-preview {
   width: 100%;
   border-radius: 18px;
@@ -780,6 +865,31 @@
 .task-checklist-column {
   display: grid;
   gap: 10px;
+}
+
+.task-sections {
+  display: grid;
+  gap: 20px;
+}
+
+.task-section-block {
+  display: grid;
+  gap: 10px;
+}
+
+.task-section-header h3,
+.task-section-header p {
+  margin: 0;
+}
+
+.player-dashboard-grid {
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.player-dashboard-card,
+.player-dashboard-card > * {
+  min-width: 0;
 }
 
 .task-check-item {
@@ -1095,6 +1205,49 @@
 
 .judge-dashboard-card > .judge-table-wrap {
   height: 100%;
+}
+
+.judge-task-create-card {
+  display: grid;
+  gap: 16px;
+}
+
+.judge-task-create-form {
+  display: grid;
+  gap: 16px;
+}
+
+.judge-task-create-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.judge-task-create-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.judge-task-recipient-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.judge-task-notify-field {
+  gap: 10px;
+}
+
+.judge-task-notify-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.judge-task-notify-toggle input {
+  width: 16px;
+  height: 16px;
 }
 
 .long-game-overview-card > .judge-table-wrap {
@@ -1553,6 +1706,49 @@
     padding: 32px 24px 48px;
   }
 
+
+  .player-dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      'tasks submit'
+      'funds longgame'
+      'submissions submissions';
+    align-items: stretch;
+  }
+
+  .player-dashboard-card--tasks,
+  .player-dashboard-card--submit,
+  .player-dashboard-card--long-game {
+    height: 100%;
+  }
+
+  .player-dashboard-card--funds > .funds-request-card-player {
+    height: 100%;
+  }
+
+  .player-dashboard-card--tasks {
+    grid-area: tasks;
+  }
+
+  .player-dashboard-card--submit {
+    grid-area: submit;
+  }
+
+  .player-dashboard-card--funds {
+    grid-area: funds;
+  }
+
+  .player-dashboard-card--long-game {
+    grid-area: longgame;
+  }
+
+  .player-dashboard-card--long-game .long-game-content {
+    text-align: center;
+  }
+
+  .player-dashboard-card--submissions {
+    grid-area: submissions;
+  }
   .judge-dashboard-layout {
     min-height: calc(100svh - 80px);
   }
@@ -1588,8 +1784,13 @@
     white-space: normal;
   }
 
-  .hero-meta .hero-submit-button {
-    margin-inline: 0;
+  .hero-section-links {
+    justify-content: flex-start;
+  }
+
+  .scroll-to-top-button {
+    right: 24px;
+    bottom: 24px;
   }
 
   .task-meta-grid {

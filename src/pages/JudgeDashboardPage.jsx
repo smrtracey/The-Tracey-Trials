@@ -12,6 +12,7 @@ import '../custom-checkbox.css';
 import { useAuth } from '../hooks/useAuth';
 
 import {
+  createJudgeTask,
   fetchJudgeLeaderboard,
   fetchJudgeLongGameRounds,
   fetchJudgeSubmissions,
@@ -57,6 +58,20 @@ function JudgeDashboardPage() {
   const [selectedLongGameRound, setSelectedLongGameRound] = useState(null);
   const [leaderboardSaveError, setLeaderboardSaveError] = useState('');
   const [savingLeaderboardUsername, setSavingLeaderboardUsername] = useState('');
+  const [taskDraft, setTaskDraft] = useState({
+    title: '',
+    description: '',
+    taskType: 'open',
+    dueDate: '',
+    audience: 'all',
+    recipients: [],
+    notifyPlayers: false,
+    notificationTitle: '',
+    notificationBody: '',
+  });
+  const [taskCreateError, setTaskCreateError] = useState('');
+  const [taskCreateSuccess, setTaskCreateSuccess] = useState('');
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -326,6 +341,58 @@ function JudgeDashboardPage() {
     }
   }
 
+  function handleTaskDraftChange(field, value) {
+    setTaskDraft((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'taskType' && value !== 'timed' ? { dueDate: '' } : {}),
+      ...(field === 'audience' && value !== 'selected' ? { recipients: [] } : {}),
+      ...(field === 'notifyPlayers' && !value
+        ? { notificationTitle: '', notificationBody: '' }
+        : {}),
+    }));
+  }
+
+  function handleTaskRecipientToggle(username) {
+    setTaskDraft((current) => ({
+      ...current,
+      recipients: current.recipients.includes(username)
+        ? current.recipients.filter((value) => value !== username)
+        : [...current.recipients, username],
+    }));
+  }
+
+  async function handleCreateTask(event) {
+    event.preventDefault();
+    setTaskCreateError('');
+    setTaskCreateSuccess('');
+    setIsCreatingTask(true);
+
+    try {
+      const data = await createJudgeTask(token, taskDraft);
+      setTasks((current) => [...current, data.task].sort((first, second) => first.taskNumber - second.taskNumber));
+      setTaskDraft({
+        title: '',
+        description: '',
+        taskType: 'open',
+        dueDate: '',
+        audience: 'all',
+        recipients: [],
+        notifyPlayers: false,
+        notificationTitle: '',
+        notificationBody: '',
+      });
+      const pushSummary = data.pushResult
+        ? ` Notification sent to ${data.pushResult.sent ?? 0} device(s).${data.pushResult.failed ? ` ${data.pushResult.failed} failed.` : ''}`
+        : '';
+      setTaskCreateSuccess(`Additional task created: ${data.task.title}.${pushSummary}`);
+    } catch (createError) {
+      setTaskCreateError(createError.message);
+    } finally {
+      setIsCreatingTask(false);
+    }
+  }
+
   return (
     <main className="app-shell">
       <section className="judge-dashboard-layout">
@@ -350,6 +417,148 @@ function JudgeDashboardPage() {
           contestants={contestants}
           token={token}
         />
+        <article className="task-meta-card judge-task-create-card">
+          <div className="panel-header">
+            <div>
+              <h2>Create Additional Task</h2>
+              <p>Add a new task for players. Choose whether it is open ended, a race, or due on a specific date.</p>
+            </div>
+          </div>
+
+          {taskCreateError ? <div className="error-banner">{taskCreateError}</div> : null}
+          {taskCreateSuccess ? <div className="success-banner">{taskCreateSuccess}</div> : null}
+
+          <form className="judge-task-create-form" onSubmit={handleCreateTask}>
+            <div className="field">
+              <label htmlFor="judge-task-title">Title</label>
+              <input
+                id="judge-task-title"
+                value={taskDraft.title}
+                onChange={(event) => handleTaskDraftChange('title', event.target.value)}
+                placeholder="e.g. Capture the best apology video"
+                maxLength={120}
+                required
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="judge-task-description">Description</label>
+              <textarea
+                id="judge-task-description"
+                value={taskDraft.description}
+                onChange={(event) => handleTaskDraftChange('description', event.target.value)}
+                placeholder="Explain what players need to do and how it should be judged."
+                rows={4}
+                required
+              />
+            </div>
+
+            <div className="judge-task-create-grid">
+              <div className="field">
+                <label htmlFor="judge-task-type">Task type</label>
+                <select
+                  id="judge-task-type"
+                  value={taskDraft.taskType}
+                  onChange={(event) => handleTaskDraftChange('taskType', event.target.value)}
+                >
+                  <option value="open">Open ended</option>
+                  <option value="race">Race</option>
+                  <option value="timed">Due date</option>
+                </select>
+              </div>
+
+              <div className="field">
+                <label htmlFor="judge-task-audience">Assign to</label>
+                <select
+                  id="judge-task-audience"
+                  value={taskDraft.audience}
+                  onChange={(event) => handleTaskDraftChange('audience', event.target.value)}
+                >
+                  <option value="all">All players</option>
+                  <option value="selected">Selected players</option>
+                </select>
+              </div>
+
+              {taskDraft.taskType === 'timed' ? (
+                <div className="field">
+                  <label htmlFor="judge-task-due-date">Due date</label>
+                  <input
+                    id="judge-task-due-date"
+                    type="date"
+                    value={taskDraft.dueDate}
+                    onChange={(event) => handleTaskDraftChange('dueDate', event.target.value)}
+                    required
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            {taskDraft.audience === 'selected' ? (
+              <div className="field">
+                <label>Players</label>
+                <div className="judge-task-recipient-list">
+                  {contestants.map((username) => {
+                    const displayName = username.charAt(0).toUpperCase() + username.slice(1);
+
+                    return (
+                      <label key={username} className="custom-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={taskDraft.recipients.includes(username)}
+                          onChange={() => handleTaskRecipientToggle(username)}
+                        />
+                        <span>{displayName}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="field judge-task-notify-field">
+              <label className="judge-task-notify-toggle">
+                <input
+                  type="checkbox"
+                  checked={taskDraft.notifyPlayers}
+                  onChange={(event) => handleTaskDraftChange('notifyPlayers', event.target.checked)}
+                />
+                <span>Send push notification when this task is created</span>
+              </label>
+            </div>
+
+            {taskDraft.notifyPlayers ? (
+              <div className="judge-task-create-grid">
+                <div className="field">
+                  <label htmlFor="judge-task-notification-title">Push title</label>
+                  <input
+                    id="judge-task-notification-title"
+                    value={taskDraft.notificationTitle}
+                    onChange={(event) => handleTaskDraftChange('notificationTitle', event.target.value)}
+                    placeholder="e.g. New additional task"
+                    required
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="judge-task-notification-body">Push message</label>
+                  <input
+                    id="judge-task-notification-body"
+                    value={taskDraft.notificationBody}
+                    onChange={(event) => handleTaskDraftChange('notificationBody', event.target.value)}
+                    placeholder="e.g. A new task is waiting for you in the app."
+                    required
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            <div className="judge-task-create-actions">
+              <button className="button" type="submit" disabled={isCreatingTask || isLoading}>
+                {isCreatingTask ? 'Creating…' : 'Create task'}
+              </button>
+            </div>
+          </form>
+        </article>
         <FilterBar
           contestants={contestants}
           selectedContestant={selectedContestant}

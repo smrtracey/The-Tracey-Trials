@@ -6,10 +6,120 @@ import { LongGameDecision } from '../models/LongGameDecision.js'
 import { Submission } from '../models/Submission.js'
 import { Task } from '../models/Task.js'
 import { User } from '../models/User.js'
-import { sendPushToAll } from '../services/pushService.js'
+import { sendPushToAll, sendPushToUsernames } from '../services/pushService.js'
 import { NotificationSchemaModel } from '../models/NotificationSchema.js'
 
 const judgeRoutes = Router()
+
+function formatDeadlineLabel(deadlineAt) {
+  return new Intl.DateTimeFormat('en-IE', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Europe/Dublin',
+  }).format(deadlineAt)
+}
+
+function normalizeJudgeTaskDraft(body) {
+  const title = typeof body.title === 'string' ? body.title.trim() : ''
+  const description = typeof body.description === 'string' ? body.description.trim() : ''
+  const taskType = typeof body.taskType === 'string' ? body.taskType.trim() : ''
+  const dueDate = typeof body.dueDate === 'string' ? body.dueDate.trim() : ''
+  const audience = typeof body.audience === 'string' ? body.audience.trim() : 'all'
+  const recipients = Array.isArray(body.recipients)
+    ? [...new Set(body.recipients.map((value) => String(value).trim().toLowerCase()).filter(Boolean))]
+    : []
+  const notifyPlayers = Boolean(body.notifyPlayers)
+  const notificationTitle = typeof body.notificationTitle === 'string' ? body.notificationTitle.trim() : ''
+  const notificationBody = typeof body.notificationBody === 'string' ? body.notificationBody.trim() : ''
+
+  if (!title) {
+    return { error: 'Task title is required.' }
+  }
+
+  if (!description) {
+    return { error: 'Task description is required.' }
+  }
+
+  if (!['race', 'timed', 'open'].includes(taskType)) {
+    return { error: 'Task type must be race, timed, or open.' }
+  }
+
+  if (!['all', 'selected'].includes(audience)) {
+    return { error: 'Audience must be all or selected.' }
+  }
+
+  if (audience === 'selected' && recipients.length === 0) {
+    return { error: 'Select at least one player for a targeted task.' }
+  }
+
+  if (notifyPlayers && (!notificationTitle || !notificationBody)) {
+    return { error: 'Push title and message are required when notifications are enabled.' }
+  }
+
+  if (taskType === 'timed') {
+    if (!dueDate) {
+      return { error: 'A due date is required for a timed task.' }
+    }
+
+    const deadlineAt = new Date(`${dueDate}T23:59:59.000Z`)
+
+    if (Number.isNaN(deadlineAt.getTime())) {
+      return { error: 'Due date is invalid.' }
+    }
+
+    return {
+      value: {
+        title,
+        description,
+        goal: title,
+        audience,
+        recipients,
+        notifyPlayers,
+        notificationTitle,
+        notificationBody,
+        category: 'timed',
+        hasTimeConstraint: true,
+        deadlineAt,
+        deadlineLabel: formatDeadlineLabel(deadlineAt),
+      },
+    }
+  }
+
+  if (dueDate) {
+    return { error: 'Only timed tasks can have a due date.' }
+  }
+
+  return {
+    value: {
+      title,
+      description,
+      goal: title,
+      audience,
+      recipients,
+      notifyPlayers,
+      notificationTitle,
+      notificationBody,
+      category: taskType === 'race' ? 'race' : 'common',
+      hasTimeConstraint: false,
+      deadlineAt: null,
+      deadlineLabel: '',
+    },
+  }
+}
+
+function toJudgeTaskPayload(task) {
+  return {
+    id: task._id.toString(),
+    taskNumber: task.taskNumber,
+    title: task.title,
+    taskSource: task.taskSource ?? 'core',
+    audience: task.audience,
+    assignedUsernames: task.assignedUsernames ?? [],
+    category: task.category,
+    deadlineLabel: task.deadlineLabel ?? '',
+  }
+}
 
 function getMatchupKey(roundNumber, usernameA, usernameB) {
   const [firstPlayer, secondPlayer] = [usernameA, usernameB].map((value) => value.trim().toLowerCase()).sort()
@@ -72,12 +182,78 @@ judgeRoutes.patch('/submissions/:id/done', async (request, response, next) => {
 judgeRoutes.get('/tasks', async (_request, response, next) => {
   try {
     const tasks = await Task.find({ isActive: true })
-      .select('taskNumber title')
+      .select('taskNumber title taskSource audience assignedUsernames category deadlineLabel')
       .sort({ taskNumber: 1 })
       .lean()
 
     return response.json({
       tasks,
+    })
+  } catch (error) {
+    return next(error)
+  }
+})
+
+judgeRoutes.post('/tasks', async (request, response, next) => {
+  try {
+    const normalizedDraft = normalizeJudgeTaskDraft(request.body)
+
+    if (normalizedDraft.error) {
+      return response.status(400).json({ message: normalizedDraft.error })
+    }
+
+    const highestTask = await Task.findOne().sort({ taskNumber: -1 }).select('taskNumber').lean()
+    const nextTaskNumber = (highestTask?.taskNumber ?? 0) + 1
+    const recipientUsernames = normalizedDraft.value.recipients ?? []
+    const assignedUsers =
+      normalizedDraft.value.audience === 'selected'
+        ? await User.find({
+            role: 'contestant',
+            username: { $in: recipientUsernames },
+          })
+            .select('_id username')
+            .lean()
+        : []
+
+    if (normalizedDraft.value.audience === 'selected' && assignedUsers.length !== recipientUsernames.length) {
+      return response.status(400).json({ message: 'One or more selected players could not be found.' })
+    }
+
+    const task = await Task.create({
+      taskNumber: nextTaskNumber,
+      audience: normalizedDraft.value.audience,
+      assignedUserIds: assignedUsers.map((user) => user._id),
+      assignedUsernames: assignedUsers.map((user) => user.username),
+      taskSource: 'additional',
+      mandatory: false,
+      title: normalizedDraft.value.title,
+      description: normalizedDraft.value.description,
+      goal: normalizedDraft.value.goal,
+      category: normalizedDraft.value.category,
+      hasTimeConstraint: normalizedDraft.value.hasTimeConstraint,
+      deadlineAt: normalizedDraft.value.deadlineAt,
+      deadlineLabel: normalizedDraft.value.deadlineLabel,
+    })
+
+    let pushResult = null
+
+    if (normalizedDraft.value.notifyPlayers) {
+      const payload = {
+        title: normalizedDraft.value.notificationTitle,
+        body: normalizedDraft.value.notificationBody,
+      }
+
+      const contestantRecipients =
+        normalizedDraft.value.audience === 'selected'
+          ? assignedUsers.map((user) => user.username)
+          : await User.find({ role: 'contestant' }).distinct('username')
+
+      pushResult = await sendPushToUsernames(contestantRecipients, payload)
+    }
+
+    return response.status(201).json({
+      task: toJudgeTaskPayload(task),
+      pushResult,
     })
   } catch (error) {
     return next(error)
@@ -267,14 +443,20 @@ judgeRoutes.patch('/leaderboard/:username/points', async (request, response, nex
 })
 
 judgeRoutes.post('/push/send', async (request, response, next) => {
-  const { title, body } = request.body
+  const { title, body, recipients } = request.body
 
   if (!title || !body) {
     return response.status(400).json({ message: 'title and body are required.' })
   }
 
   try {
-    const result = await sendPushToAll({ title, body })
+    const normalizedRecipients = Array.isArray(recipients)
+      ? [...new Set(recipients.map((value) => String(value).trim().toLowerCase()).filter(Boolean))]
+      : []
+
+    const result = normalizedRecipients.length > 0
+      ? await sendPushToUsernames(normalizedRecipients, { title, body })
+      : await sendPushToAll({ title, body })
     return response.json(result)
   } catch (error) {
     return next(error)
@@ -326,14 +508,20 @@ judgeRoutes.patch('/funds/:id', async (request, response, next) => {
 })
 
 judgeRoutes.post('/push/send', async (request, response, next) => {
-  const { title, body } = request.body
+  const { title, body, recipients } = request.body
 
   if (!title || !body) {
     return response.status(400).json({ message: 'title and body are required.' })
   }
 
   try {
-    const result = await sendPushToAll({ title, body })
+    const normalizedRecipients = Array.isArray(recipients)
+      ? [...new Set(recipients.map((value) => String(value).trim().toLowerCase()).filter(Boolean))]
+      : []
+
+    const result = normalizedRecipients.length > 0
+      ? await sendPushToUsernames(normalizedRecipients, { title, body })
+      : await sendPushToAll({ title, body })
     return response.json(result)
   } catch (error) {
     return next(error)

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import FundsRequestCard from '../components/FundsRequestCard'
+import SubmissionList from '../components/SubmissionList'
 import SubmissionForm from '../components/SubmissionForm'
 import { useAuth } from '../hooks/useAuth'
 import { subscribeToPushNotifications } from '../lib/push'
@@ -8,6 +9,7 @@ import {
   createSubmission,
   fetchCompletedTasks,
   fetchLongGameStatus,
+  fetchSubmissions,
   saveLongGameChoice,
   updateCompletedTasks,
 } from '../lib/api'
@@ -28,6 +30,11 @@ function toTitleCase(value) {
     .split(' ')
     .map((word) => (word ? `${word.charAt(0).toUpperCase()}${word.slice(1)}` : word))
     .join(' ')
+}
+
+function getTaskNameByNumber(tasks, taskNumber) {
+  const task = tasks.find((entry) => entry.taskNumber === taskNumber)
+  return task ? toTitleCase(task.title) : `Task #${taskNumber}`
 }
 
 function getCategorySymbol(category) {
@@ -83,9 +90,83 @@ function formatLongGameCountdown(endDate, nowTimestamp) {
   return `${days}d ${hours}h ${minutes}m ${seconds}s`
 }
 
+function getStoredBoolean(key) {
+  if (typeof localStorage === 'undefined') {
+    return false
+  }
+
+  return localStorage.getItem(key) === 'true'
+}
+
+function setStoredBoolean(key, value) {
+  if (typeof localStorage === 'undefined') {
+    return
+  }
+
+  if (value) {
+    localStorage.setItem(key, 'true')
+    return
+  }
+
+  localStorage.removeItem(key)
+}
+
+function getIsIosSafari() {
+  if (typeof navigator === 'undefined') {
+    return false
+  }
+
+  const userAgent = navigator.userAgent.toLowerCase()
+  const isIos = /iphone|ipad|ipod/.test(userAgent)
+  const isSafari = /safari/.test(userAgent) && !/crios|fxios|edgios|chrome/.test(userAgent)
+
+  return isIos && isSafari
+}
+
+function getIsAppInstalled() {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true
+  )
+}
+
+function getScrollContainer(element) {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  let current = element?.parentElement ?? null
+
+  while (current) {
+    const styles = window.getComputedStyle(current)
+    const overflowY = styles.overflowY
+    const isScrollable =
+      (overflowY === 'auto' || overflowY === 'scroll') && current.scrollHeight > current.clientHeight
+
+    if (isScrollable) {
+      return current
+    }
+
+    current = current.parentElement
+  }
+
+  return document.scrollingElement
+}
+
 function HomePage() {
   const { token, user, signOut } = useAuth()
+  const heroSectionRef = useRef(null)
+  const notificationSectionRef = useRef(null)
+  const installSectionRef = useRef(null)
+  const tasksSectionRef = useRef(null)
   const submitSectionRef = useRef(null)
+  const fundsSectionRef = useRef(null)
+  const longGameSectionRef = useRef(null)
+  const submissionsSectionRef = useRef(null)
   const [now, setNow] = useState(() => Date.now())
   const [activeIconInfo, setActiveIconInfo] = useState('')
   const [tasks, setTasks] = useState([])
@@ -96,6 +177,9 @@ function HomePage() {
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submissions, setSubmissions] = useState([])
+  const [isSubmissionsLoading, setIsSubmissionsLoading] = useState(true)
+  const [submissionsError, setSubmissionsError] = useState('')
   const [longGameStatus, setLongGameStatus] = useState(null)
   const [longGameError, setLongGameError] = useState('')
   const [isLongGameLoading, setIsLongGameLoading] = useState(false)
@@ -103,24 +187,42 @@ function HomePage() {
   const [pendingLongGameChoice, setPendingLongGameChoice] = useState('')
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null)
   const [isInstallingApp, setIsInstallingApp] = useState(false)
-  const [isIosSafari, setIsIosSafari] = useState(false)
-  const [isAppInstalled, setIsAppInstalled] = useState(false)
+  const isIosSafari = useMemo(() => getIsIosSafari(), [])
+  const [isAppInstalled, setIsAppInstalled] = useState(() => getIsAppInstalled())
   const [notificationPermission, setNotificationPermission] = useState(() =>
     typeof Notification !== 'undefined' ? Notification.permission : 'default',
   )
   const [notificationMessage, setNotificationMessage] = useState('')
   const [isEnablingNotifications, setIsEnablingNotifications] = useState(false)
+  const [showScrollTopButton, setShowScrollTopButton] = useState(false)
   const [isTaskCardExpanded, setIsTaskCardExpanded] = useState(() => {
     const key = `tracey-trials-task-card-expanded-${user.id}`
     return localStorage.getItem(key) !== 'false'
+  })
+  const [isLaptopTaskLayout, setIsLaptopTaskLayout] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false
+    }
+
+    return window.matchMedia('(min-width: 980px)').matches
   })
 
   const visitKey = useMemo(() => `tracey-trials-home-visited-${user.id}`, [user.id])
   const installDismissKey = useMemo(() => `tracey-trials-install-dismissed-${user.id}`, [user.id])
   const isFirstVisit = useMemo(() => localStorage.getItem(visitKey) !== 'true', [visitKey])
-  const [isInstallPromptDismissed, setIsInstallPromptDismissed] = useState(
-    () => localStorage.getItem(installDismissKey) === 'true',
-  )
+  const [installPromptDismissState, setInstallPromptDismissState] = useState(() => ({
+    key: installDismissKey,
+    value: getStoredBoolean(installDismissKey),
+  }))
+  const isInstallPromptDismissed =
+    installPromptDismissState.key === installDismissKey
+      ? installPromptDismissState.value
+      : getStoredBoolean(installDismissKey)
+
+  const markInstallPromptDismissed = (value) => {
+    setStoredBoolean(installDismissKey, value)
+    setInstallPromptDismissState({ key: installDismissKey, value })
+  }
 
   useEffect(() => {
     if (isFirstVisit) {
@@ -134,8 +236,29 @@ function HomePage() {
   }, [isTaskCardExpanded, user.id])
 
   useEffect(() => {
-    setIsInstallPromptDismissed(localStorage.getItem(installDismissKey) === 'true')
-  }, [installDismissKey])
+    if (typeof window === 'undefined') {
+      return undefined
+    }
+
+    const mediaQuery = window.matchMedia('(min-width: 980px)')
+    const syncLaptopLayout = (event) => {
+      setIsLaptopTaskLayout(event.matches)
+    }
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncLaptopLayout)
+
+      return () => {
+        mediaQuery.removeEventListener('change', syncLaptopLayout)
+      }
+    }
+
+    mediaQuery.addListener(syncLaptopLayout)
+
+    return () => {
+      mediaQuery.removeListener(syncLaptopLayout)
+    }
+  }, [])
 
   useEffect(() => {
     function syncNotificationPermission() {
@@ -157,24 +280,6 @@ function HomePage() {
   }, [])
 
   useEffect(() => {
-    function checkInstalledMode() {
-      if (typeof window === 'undefined') {
-        return false
-      }
-
-      return (
-        window.matchMedia('(display-mode: standalone)').matches ||
-        window.navigator.standalone === true
-      )
-    }
-
-    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent.toLowerCase() : ''
-    const isIos = /iphone|ipad|ipod/.test(userAgent)
-    const isSafari = /safari/.test(userAgent) && !/crios|fxios|edgios|chrome/.test(userAgent)
-
-    setIsIosSafari(isIos && isSafari)
-    setIsAppInstalled(checkInstalledMode())
-
     function handleBeforeInstallPrompt(event) {
       event.preventDefault()
       setDeferredInstallPrompt(event)
@@ -183,8 +288,8 @@ function HomePage() {
     function handleAppInstalled() {
       setIsAppInstalled(true)
       setDeferredInstallPrompt(null)
-      setIsInstallPromptDismissed(true)
-      localStorage.setItem(installDismissKey, 'true')
+      setStoredBoolean(installDismissKey, true)
+      setInstallPromptDismissState({ key: installDismissKey, value: true })
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -203,6 +308,54 @@ function HomePage() {
 
     return () => {
       clearInterval(intervalId)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined
+    }
+
+    const heroSection = heroSectionRef.current
+
+    if (!heroSection) {
+      return undefined
+    }
+
+    const scrollContainer = getScrollContainer(heroSection)
+
+    if (!scrollContainer) {
+      return undefined
+    }
+
+    const readVisibility = () => {
+      const heroRect = heroSection.getBoundingClientRect()
+
+      if (scrollContainer === document.scrollingElement) {
+        return heroRect.bottom <= 16
+      }
+
+      const containerRect = scrollContainer.getBoundingClientRect()
+      return heroRect.bottom <= containerRect.top + 16
+    }
+
+    const syncScrollTopButton = () => {
+      setShowScrollTopButton(readVisibility())
+    }
+
+    const handleScroll = () => {
+      syncScrollTopButton()
+    }
+
+    const frameId = window.requestAnimationFrame(syncScrollTopButton)
+
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('resize', handleScroll)
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+      scrollContainer.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('resize', handleScroll)
     }
   }, [])
 
@@ -229,6 +382,34 @@ function HomePage() {
     }
 
     loadCompletedTasks()
+
+    return () => {
+      isMounted = false
+    }
+  }, [token])
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadSubmissions() {
+      try {
+        const data = await fetchSubmissions(token)
+        if (isMounted) {
+          setSubmissions(data.submissions ?? [])
+          setSubmissionsError('')
+        }
+      } catch (loadError) {
+        if (isMounted) {
+          setSubmissionsError(loadError.message)
+        }
+      } finally {
+        if (isMounted) {
+          setIsSubmissionsLoading(false)
+        }
+      }
+    }
+
+    loadSubmissions()
 
     return () => {
       isMounted = false
@@ -288,7 +469,10 @@ function HomePage() {
     setIsSubmitting(true)
 
     try {
-      await createSubmission({ token, ...payload })
+      const data = await createSubmission({ token, ...payload })
+      if (data?.submission) {
+        setSubmissions((current) => [data.submission, ...current])
+      }
       setSuccessMessage('Task submitted successfully.')
     } catch (submitError) {
       setError(submitError.message)
@@ -406,8 +590,7 @@ function HomePage() {
   }
 
   function handleDismissInstallPrompt() {
-    setIsInstallPromptDismissed(true)
-    localStorage.setItem(installDismissKey, 'true')
+    markInstallPromptDismissed(true)
   }
 
   const timeUntilNewYearsEve = useMemo(() => {
@@ -423,158 +606,437 @@ function HomePage() {
     return `${days}d ${hours}h ${minutes}m ${seconds}s`
   }, [now])
 
-  const orderedTasks = useMemo(() => {
-    function getTaskPriority(task) {
-      if (task.title.trim().toLowerCase() === 'the long game') {
-        return 0
+  const sortTasks = useMemo(
+    () => (taskList) => {
+      function getTaskPriority(task) {
+        if (task.title.trim().toLowerCase() === 'the long game') {
+          return 0
+        }
+
+        if (task.mandatory) {
+          return 1
+        }
+
+        if (task.category === 'race') {
+          return 2
+        }
+
+        if (task.category === 'special') {
+          return 3
+        }
+
+        if (task.category === 'timed') {
+          return 4
+        }
+
+        if (task.category === 'common') {
+          return 5
+        }
+
+        return 6
       }
 
-      if (task.mandatory) {
-        return 1
-      }
+      return [...taskList].sort((a, b) => {
+        const priorityDifference = getTaskPriority(a) - getTaskPriority(b)
 
-      if (task.category === 'race') {
-        return 2
-      }
+        if (priorityDifference !== 0) {
+          return priorityDifference
+        }
 
-      if (task.category === 'special') {
-        return 3
-      }
+        return (a.displayNumber ?? a.taskNumber) - (b.displayNumber ?? b.taskNumber)
+      })
+    },
+    [],
+  )
 
-      if (task.category === 'timed') {
-        return 4
-      }
+  const coreTasks = useMemo(
+    () => sortTasks(tasks.filter((task) => (task.taskSource ?? 'core') !== 'additional')),
+    [sortTasks, tasks],
+  )
 
-      if (task.category === 'common') {
-        return 5
-      }
+  const additionalTasks = useMemo(
+    () => sortTasks(tasks.filter((task) => (task.taskSource ?? 'core') === 'additional')),
+    [sortTasks, tasks],
+  )
 
-      return 6
+  const buildTaskColumns = useMemo(
+    () => (taskList) => {
+    const columnCount = 3
+      const itemsPerColumn = Math.ceil(taskList.length / columnCount)
+
+      return Array.from({ length: columnCount }, (_, index) => {
+        const start = index * itemsPerColumn
+        const end = start + itemsPerColumn
+        return taskList.slice(start, end)
+      })
+    },
+    [],
+  )
+
+  const coreTaskColumns = useMemo(() => buildTaskColumns(coreTasks), [buildTaskColumns, coreTasks])
+  const additionalTaskColumns = useMemo(
+    () => buildTaskColumns(additionalTasks),
+    [additionalTasks, buildTaskColumns],
+  )
+
+  function handleScrollToSection(sectionRef) {
+    const targetSection = sectionRef.current
+
+    if (!targetSection || typeof window === 'undefined') {
+      return
     }
 
-    return [...tasks].sort((a, b) => {
-      const priorityDifference = getTaskPriority(a) - getTaskPriority(b)
+    const activeElement = document.activeElement
+    if (activeElement instanceof HTMLElement) {
+      activeElement.blur()
+    }
 
-      if (priorityDifference !== 0) {
-        return priorityDifference
-      }
+    const scrollContainer = getScrollContainer(targetSection)
 
-      return (a.displayNumber ?? a.taskNumber) - (b.displayNumber ?? b.taskNumber)
-    })
-  }, [tasks])
+    if (!scrollContainer || scrollContainer === document.scrollingElement) {
+      const targetTop = targetSection.getBoundingClientRect().top + window.scrollY - 16
 
-  const taskColumns = useMemo(() => {
-    const columnCount = 3
-    const itemsPerColumn = Math.ceil(orderedTasks.length / columnCount)
+      window.scrollTo({
+        top: Math.max(0, targetTop),
+        behavior: 'smooth',
+      })
 
-    return Array.from({ length: columnCount }, (_, index) => {
-      const start = index * itemsPerColumn
-      const end = start + itemsPerColumn
-      return orderedTasks.slice(start, end)
-    })
-  }, [orderedTasks])
+      return
+    }
 
-  function handleScrollToSubmit() {
-    submitSectionRef.current?.scrollIntoView({
+    const containerRect = scrollContainer.getBoundingClientRect()
+    const targetRect = targetSection.getBoundingClientRect()
+    const targetTop = targetRect.top - containerRect.top + scrollContainer.scrollTop - 16
+
+    scrollContainer.scrollTo({
+      top: Math.max(0, targetTop),
       behavior: 'smooth',
-      block: 'start',
     })
   }
 
-  const copy = {
-    welcome: 'Welcome',
-    welcomeBack: 'Welcome back',
-    heroSubtitle: 'Track your progress and keep an eye on the countdown.',
-    tasksCompleted:
-      completedTaskNumbers.length === 1
-        ? '1 task complete'
-        : `${completedTaskNumbers.length} tasks completed`,
-    submit: 'Submit',
-    completedTasks: 'Completed tasks',
-    completedTasksHint: 'Tick off the tasks you’ve completed.',
-    collapse: 'Collapse completed tasks',
-    expand: 'Expand completed tasks',
-    loadingTasks: 'Loading task checklist…',
-    noTasks: 'No tasks are currently assigned.',
-    longGameLoading: 'Loading duel...',
-    duePrefix: 'Due',
-    submitSectionTitle: 'Submit a new task',
-    submitSectionHint: 'You can add photos, videos, or text responses for your tasks.',
-    signOut: 'Sign out',
-    mandatoryLabel: 'Mandatory task',
-    mandatoryInfoTitle: 'Mandatory task',
-    mandatoryInfoBody: 'The ! icon means this is a mandatory task and must be completed.',
-    raceLabel: 'Race task',
-    raceInfoTitle: 'Race task',
-    raceInfoBody: 'The checkered flag icon marks this as a race task.',
-    specialLabel: 'Special task',
-    specialInfoTitle: 'Special task',
-    specialInfoBody: 'The star icon marks this as a special task.',
-    timedLabel: 'Timed task',
-    timedInfoTitle: 'Timed task',
-    timedInfoBody: 'The clock icon marks this as a timed task.',
-    longGameTitle: 'The Long Game',
-    longGameRoundLabel: 'Round',
-    longGameCountdownLabel: 'Time remaining',
-    longGameOpponentLabel: 'Opponent',
-    longGameStatusActive: 'Active now',
-    longGameStatusUpcoming: 'Upcoming round',
-    longGameStatusCompleted: 'Round closed',
-    longGameBye: 'You have a bye in this round.',
-    longGameMissingOpponent: 'Your opponent could not be resolved for this round.',
-    cooperate: 'Cooperate',
-    betray: 'Betray',
-    longGameYourChoice: 'Your choice',
-    longGameChoosePrompt: 'Make your choice',
-    longGameConfirmTitle: 'Confirm choice',
-    longGameConfirmBody: 'Do you want to confirm your choice?',
-    confirm: 'Confirm',
-    cancel: 'Cancel',
-    close: 'Close',
+  function handleScrollToTop() {
+    const heroSection = heroSectionRef.current
+
+    if (!heroSection || typeof window === 'undefined') {
+      return
+    }
+
+    const scrollContainer = getScrollContainer(heroSection)
+
+    if (!scrollContainer || scrollContainer === document.scrollingElement) {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+
+    scrollContainer.scrollTo({ top: 0, behavior: 'smooth' })
   }
+
+  const tasksCompletedText =
+    completedTaskNumbers.length === 1
+      ? '1 task complete'
+      : `${completedTaskNumbers.length} tasks completed`
 
   const iconInfoCopyByKey = {
     mandatory: {
-      title: copy.mandatoryInfoTitle,
-      body: copy.mandatoryInfoBody,
+      title: 'Mandatory task',
+      body: 'The ! icon means this is a mandatory task and must be completed.',
     },
     race: {
-      title: copy.raceInfoTitle,
-      body: copy.raceInfoBody,
+      title: 'Race task',
+      body: 'The checkered flag icon marks this as a race task.',
     },
     special: {
-      title: copy.specialInfoTitle,
-      body: copy.specialInfoBody,
+      title: 'Special task',
+      body: 'The star icon marks this as a special task.',
     },
     timed: {
-      title: copy.timedInfoTitle,
-      body: copy.timedInfoBody,
+      title: 'Timed task',
+      body: 'The clock icon marks this as a timed task.',
     },
   }
 
   const activeInfo = activeIconInfo ? iconInfoCopyByKey[activeIconInfo] : null
-  const shouldShowLongGameCard = Boolean(
-    longGameStatus &&
-      longGameStatus.roundStatus === 'active' &&
-      !longGameStatus.isBye &&
-      longGameStatus.opponent,
-  )
   const shouldShowInstallCard = !isAppInstalled && !isInstallPromptDismissed
   const supportsPush =
     typeof Notification !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window
   const shouldShowNotificationCard = notificationPermission !== 'granted'
+  const shouldShowExpandedTaskCard = isLaptopTaskLayout || isTaskCardExpanded
+  const heroSectionLinks = [
+    ...(shouldShowNotificationCard
+      ? [{ key: 'notifications', label: 'Notifications', ref: notificationSectionRef }]
+      : []),
+    ...(shouldShowInstallCard ? [{ key: 'install', label: 'Install', ref: installSectionRef }] : []),
+    { key: 'tasks', label: 'Tasks', ref: tasksSectionRef },
+    { key: 'submit', label: 'Submit', ref: submitSectionRef },
+    { key: 'funds', label: 'Funds', ref: fundsSectionRef },
+    ...(longGameTask ? [{ key: 'long-game', label: 'Long Game', ref: longGameSectionRef }] : []),
+    { key: 'submissions', label: 'Submissions', ref: submissionsSectionRef },
+  ]
+
+  function renderTaskChecklist(taskColumns) {
+    return (
+      <div className="task-checklist-grid">
+        {taskColumns.map((taskColumn, columnIndex) => (
+          <div key={columnIndex} className="task-checklist-column">
+            {taskColumn.map((task) => {
+              const taskNumber = task.taskNumber
+              const taskDisplayNumber = task.displayNumber ?? task.taskNumber
+              const isCompleted = completedTaskNumbers.includes(taskNumber)
+              const taskTitle = toTitleCase(task.title)
+              const categorySymbol = getCategorySymbol(task.category)
+              const categoryInfoKey = getCategoryInfoKey(task.category)
+
+              const categoryLabelByKey = {
+                race: 'Race task',
+                special: 'Special task',
+                timed: 'Timed task',
+              }
+
+              return (
+                <div
+                  key={taskNumber}
+                  className={`task-check-item${isCompleted ? ' task-check-item--completed' : ''}`}
+                >
+                  <div className="task-corner-icons">
+                    {categorySymbol && categoryInfoKey ? (
+                      <button
+                        className="task-category-icon-button task-category-symbol task-corner-icon"
+                        type="button"
+                        title={categoryLabelByKey[categoryInfoKey]}
+                        aria-label={categoryLabelByKey[categoryInfoKey]}
+                        onClick={() => setActiveIconInfo(categoryInfoKey)}
+                      >
+                        {categorySymbol}
+                      </button>
+                    ) : null}
+                    {task.mandatory ? (
+                      <button
+                        className="mandatory-corner-icon"
+                        type="button"
+                        title="Mandatory task"
+                        aria-label="Mandatory task"
+                        onClick={() => setActiveIconInfo('mandatory')}
+                      >
+                        !
+                      </button>
+                    ) : null}
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={isCompleted}
+                    onChange={() => handleToggleTask(taskNumber)}
+                    disabled={isTaskListSaving}
+                    aria-label={`Mark ${taskTitle} as completed`}
+                  />
+                  <Link className="task-check-link task-check-text" to={`/tasks/${taskDisplayNumber}`}>
+                    {taskTitle}
+                  </Link>
+                </div>
+              )
+            })}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  function renderLongGameCardContent() {
+    if (isLongGameLoading && !longGameStatus) {
+      return <p className="muted">Loading duel...</p>
+    }
+
+    if (!longGameStatus) {
+      return longGameError ? <div className="error-banner">{longGameError}</div> : <p className="muted">Loading duel...</p>
+    }
+
+    if (longGameStatus.isBye) {
+      return (
+        <>
+          <div className="long-game-meta">
+            <div className="long-game-meta-row">
+              <span className="long-game-meta-label">Round</span>
+              <span className="long-game-meta-value">
+                {longGameStatus.roundNumber}
+                {longGameStatus.roundStatus === 'upcoming' ? (
+                  <span className="long-game-status-badge long-game-status-badge--upcoming">Upcoming round</span>
+                ) : longGameStatus.roundStatus === 'closed' ? (
+                  <span className="long-game-status-badge long-game-status-badge--closed">Round closed</span>
+                ) : null}
+              </span>
+            </div>
+            {longGameStatus.endDate ? (
+              <div className="long-game-meta-row">
+                <span className="long-game-meta-label">Time remaining</span>
+                <span className="long-game-meta-value long-game-countdown">
+                  {formatLongGameCountdown(longGameStatus.endDate, now)}
+                </span>
+              </div>
+            ) : null}
+          </div>
+          <p className="muted">You have a bye in this round.</p>
+        </>
+      )
+    }
+
+    if (!longGameStatus.opponent) {
+      return (
+        <>
+          <div className="long-game-meta">
+            <div className="long-game-meta-row">
+              <span className="long-game-meta-label">Round</span>
+              <span className="long-game-meta-value">{longGameStatus.roundNumber}</span>
+            </div>
+          </div>
+          {longGameError ? <div className="error-banner">{longGameError}</div> : null}
+          <p className="muted">Your opponent could not be resolved for this round.</p>
+        </>
+      )
+    }
+
+    if (longGameStatus.currentChoice) {
+      return (
+        <>
+          <div className="long-game-meta">
+            <div className="long-game-meta-row">
+              <span className="long-game-meta-label">Round</span>
+              <span className="long-game-meta-value">
+                {longGameStatus.roundNumber}
+                {longGameStatus.roundStatus === 'upcoming' ? (
+                  <span className="long-game-status-badge long-game-status-badge--upcoming">Upcoming round</span>
+                ) : longGameStatus.roundStatus === 'closed' ? (
+                  <span className="long-game-status-badge long-game-status-badge--closed">Round closed</span>
+                ) : null}
+              </span>
+            </div>
+            {longGameStatus.endDate ? (
+              <div className="long-game-meta-row">
+                <span className="long-game-meta-label">Time remaining</span>
+                <span className="long-game-meta-value long-game-countdown">
+                  {formatLongGameCountdown(longGameStatus.endDate, now)}
+                </span>
+              </div>
+            ) : null}
+            <div className="long-game-meta-row">
+              <span className="long-game-meta-label">Opponent</span>
+              <span className="long-game-meta-value">{longGameStatus.opponent.displayName}</span>
+            </div>
+          </div>
+          {longGameError ? <div className="error-banner">{longGameError}</div> : null}
+          <p className="muted long-game-choice-summary">
+            You've chosen to{' '}
+            <span className={`long-game-choice-word long-game-choice-word--${longGameStatus.currentChoice}`}>
+              {longGameStatus.currentChoice}
+            </span>{' '}
+            {longGameStatus.currentChoice === 'cooperate' ? 'with ' : ''}
+            {longGameStatus.opponent.displayName}
+          </p>
+        </>
+      )
+    }
+
+    if (longGameStatus.roundStatus === 'upcoming') {
+      return (
+        <>
+          <div className="long-game-meta">
+            <div className="long-game-meta-row">
+              <span className="long-game-meta-label">Round</span>
+              <span className="long-game-meta-value">
+                {longGameStatus.roundNumber}
+                <span className="long-game-status-badge long-game-status-badge--upcoming">Upcoming round</span>
+              </span>
+            </div>
+            <div className="long-game-meta-row">
+              <span className="long-game-meta-label">Opponent</span>
+              <span className="long-game-meta-value">{longGameStatus.opponent.displayName}</span>
+            </div>
+          </div>
+          {longGameError ? <div className="error-banner">{longGameError}</div> : null}
+          <p className="muted">This round has not opened yet.</p>
+        </>
+      )
+    }
+
+    if (longGameStatus.roundStatus === 'closed') {
+      return (
+        <>
+          <div className="long-game-meta">
+            <div className="long-game-meta-row">
+              <span className="long-game-meta-label">Round</span>
+              <span className="long-game-meta-value">
+                {longGameStatus.roundNumber}
+                <span className="long-game-status-badge long-game-status-badge--closed">Round closed</span>
+              </span>
+            </div>
+            <div className="long-game-meta-row">
+              <span className="long-game-meta-label">Opponent</span>
+              <span className="long-game-meta-value">{longGameStatus.opponent.displayName}</span>
+            </div>
+          </div>
+          {longGameError ? <div className="error-banner">{longGameError}</div> : null}
+          <p className="muted">This round is over.</p>
+        </>
+      )
+    }
+
+    return (
+      <>
+        <div className="long-game-meta">
+          <div className="long-game-meta-row">
+            <span className="long-game-meta-label">Round</span>
+            <span className="long-game-meta-value">{longGameStatus.roundNumber}</span>
+          </div>
+          {longGameStatus.endDate ? (
+            <div className="long-game-meta-row">
+              <span className="long-game-meta-label">Time remaining</span>
+              <span className="long-game-meta-value long-game-countdown">
+                {formatLongGameCountdown(longGameStatus.endDate, now)}
+              </span>
+            </div>
+          ) : null}
+          <div className="long-game-meta-row">
+            <span className="long-game-meta-label">Opponent</span>
+            <span className="long-game-meta-value">{longGameStatus.opponent.displayName}</span>
+          </div>
+        </div>
+
+        {longGameError ? <div className="error-banner">{longGameError}</div> : null}
+
+        <div className="long-game-choice-prompt">
+          <p className="muted">Make your choice</p>
+          <div className="long-game-choice-buttons">
+            <button
+              className="button long-game-cooperate-button"
+              type="button"
+              onClick={() => handleConfirmLongGameChoice('cooperate')}
+              disabled={isSavingLongGameChoice}
+            >
+              Cooperate
+            </button>
+            <button
+              className="button-ghost long-game-betray-button"
+              type="button"
+              onClick={() => handleConfirmLongGameChoice('betray')}
+              disabled={isSavingLongGameChoice}
+            >
+              Betray
+            </button>
+          </div>
+        </div>
+      </>
+    )
+  }
 
   return (
     <main className="app-shell">
       <div className="home-layout">
-        <section className="hero-panel screen-card" style={{ width: '100%' }}>
+        <section className="hero-panel screen-card" style={{ width: '100%' }} ref={heroSectionRef}>
           <div className="home-signout-row">
             <button
               className="button-ghost home-signout-icon-button"
               type="button"
               onClick={signOut}
-              aria-label={copy.signOut}
-              title={copy.signOut}
+              aria-label="Sign out"
+              title="Sign out"
             >
               <svg
                 className="home-signout-icon"
@@ -595,23 +1057,33 @@ function HomePage() {
           </div>
 
           <div className="title-block">
-            <h1>{isFirstVisit ? copy.welcome : copy.welcomeBack}, {user.displayName}</h1>
-            <p>{copy.heroSubtitle}</p>
+            <h1>{isFirstVisit ? 'Welcome' : 'Welcome back'}, {user.displayName}</h1>
+            <p>Track your progress and keep an eye on the countdown.</p>
           </div>
 
           <div className="hero-meta">
             <div className="meta-group">
-              <span className="pill">{copy.tasksCompleted}</span>
+              <span className="pill">{tasksCompletedText}</span>
               <span className="pill">{timeUntilNewYearsEve}</span>
             </div>
-            <button className="button hero-submit-button" type="button" onClick={handleScrollToSubmit}>
-              {copy.submit}
-            </button>
           </div>
+
+          <nav className="hero-section-links" aria-label="Homepage sections">
+            {heroSectionLinks.map((section) => (
+              <button
+                key={section.key}
+                className="button-ghost hero-section-link"
+                type="button"
+                onClick={() => handleScrollToSection(section.ref)}
+              >
+                {section.label}
+              </button>
+            ))}
+          </nav>
         </section>
 
         {shouldShowNotificationCard ? (
-          <section className="panel pwa-install-card" aria-label="Notification permission prompt">
+          <section className="panel pwa-install-card" aria-label="Notification permission prompt" ref={notificationSectionRef}>
             <h2>Enable notifications</h2>
             {!isAppInstalled && isIosSafari ? (
               <p className="muted">Install to Home Screen first, then enable notifications from inside the app.</p>
@@ -639,7 +1111,7 @@ function HomePage() {
         ) : null}
 
         {shouldShowInstallCard ? (
-          <section className="panel pwa-install-card" aria-label="Install app prompt">
+          <section className="panel pwa-install-card" aria-label="Install app prompt" ref={installSectionRef}>
             <h2>Install the app</h2>
 
             {deferredInstallPrompt ? (
@@ -686,216 +1158,147 @@ function HomePage() {
           </section>
         ) : null}
 
-        <section className="panel-grid">
-          <article className="panel stack">
-            <div className="panel-header tasks-panel-header">
+        <section className="panel-grid player-dashboard-grid">
+          <article className="panel stack player-dashboard-card player-dashboard-card--tasks" ref={tasksSectionRef}>
+            <div className={`panel-header tasks-panel-header${isLaptopTaskLayout ? ' tasks-panel-header--static' : ''}`}>
               <div>
-                <h2>{copy.completedTasks}</h2>
-                <p className="muted">{copy.completedTasksHint}</p>
+                <h2>Tasks</h2>
+                <p className="muted">Here you can see what tasks are available and mark them as completed.</p>
               </div>
-              <button
-                className={`button-ghost task-toggle-button${isTaskCardExpanded ? ' is-expanded' : ''}`}
-                type="button"
-                onClick={() => setIsTaskCardExpanded((current) => !current)}
-                aria-expanded={isTaskCardExpanded}
-                aria-label={isTaskCardExpanded ? copy.collapse : copy.expand}
-                title={isTaskCardExpanded ? copy.collapse : copy.expand}
-              >
-                <span className="task-toggle-icon" aria-hidden="true">
-                  <span className="task-toggle-line task-toggle-line--horizontal" />
-                  <span className="task-toggle-line task-toggle-line--vertical" />
-                </span>
-              </button>
+              {isLaptopTaskLayout ? null : (
+                <button
+                  className={`button-ghost task-toggle-button${isTaskCardExpanded ? ' is-expanded' : ''}`}
+                  type="button"
+                  onClick={() => setIsTaskCardExpanded((current) => !current)}
+                  aria-expanded={isTaskCardExpanded}
+                  aria-label={isTaskCardExpanded ? 'Collapse completed tasks' : 'Expand completed tasks'}
+                  title={isTaskCardExpanded ? 'Collapse completed tasks' : 'Expand completed tasks'}
+                >
+                  <span className="task-toggle-icon" aria-hidden="true">
+                    <span className="task-toggle-line task-toggle-line--horizontal" />
+                    <span className="task-toggle-line task-toggle-line--vertical" />
+                  </span>
+                </button>
+              )}
             </div>
 
-            {isTaskCardExpanded ? (
+            {shouldShowExpandedTaskCard ? (
               <>
                 {taskError ? <div className="error-banner">{taskError}</div> : null}
 
                 {isTaskListLoading ? (
-                  <p className="muted">{copy.loadingTasks}</p>
+                  <p className="muted">Loading task checklist…</p>
                 ) : tasks.length === 0 ? (
-                  <p className="muted">{copy.noTasks}</p>
+                  <p className="muted">No tasks are currently assigned.</p>
                 ) : (
-                  <div className="task-checklist-grid">
-                    {taskColumns.map((taskColumn, columnIndex) => (
-                      <div key={columnIndex} className="task-checklist-column">
-                        {taskColumn.map((task) => {
-                          const taskNumber = task.taskNumber
-                          const taskDisplayNumber = task.displayNumber ?? task.taskNumber
-                          const isCompleted = completedTaskNumbers.includes(taskNumber)
-                          const taskTitle = toTitleCase(task.title)
-                          const categorySymbol = getCategorySymbol(task.category)
-                          const categoryInfoKey = getCategoryInfoKey(task.category)
-                          const shouldShowDueDate =
-                            task.hasTimeConstraint &&
-                            task.deadlineLabel &&
-                            ![
-                              'eggscessive engineering',
-                              'this taskmaster thing is harder than it looks.',
-                            ].includes(task.title.trim().toLowerCase())
+                  <div className="task-sections">
+                    {coreTasks.length > 0 ? (
+                      <section className="task-section-block">
+                        <div className="task-section-header">
+                          <h3>Main tasks</h3>
+                        </div>
+                        {renderTaskChecklist(coreTaskColumns)}
+                      </section>
+                    ) : null}
 
-                          const categoryLabelByKey = {
-                            race: copy.raceLabel,
-                            special: copy.specialLabel,
-                            timed: copy.timedLabel,
-                          }
-
-                          return (
-                            <div
-                              key={taskNumber}
-                              className={`task-check-item${isCompleted ? ' task-check-item--completed' : ''}`}
-                            >
-                              <div className="task-corner-icons">
-                                {categorySymbol && categoryInfoKey ? (
-                                  <button
-                                    className="task-category-icon-button task-category-symbol task-corner-icon"
-                                    type="button"
-                                    title={categoryLabelByKey[categoryInfoKey]}
-                                    aria-label={categoryLabelByKey[categoryInfoKey]}
-                                    onClick={() => setActiveIconInfo(categoryInfoKey)}
-                                  >
-                                    {categorySymbol}
-                                  </button>
-                                ) : null}
-                                {task.mandatory ? (
-                                  <button
-                                    className="mandatory-corner-icon"
-                                    type="button"
-                                    title={copy.mandatoryLabel}
-                                    aria-label={copy.mandatoryLabel}
-                                    onClick={() => setActiveIconInfo('mandatory')}
-                                  >
-                                    !
-                                  </button>
-                                ) : null}
-                              </div>
-                              <input
-                                type="checkbox"
-                                checked={isCompleted}
-                                onChange={() => handleToggleTask(taskNumber)}
-                                disabled={isTaskListSaving}
-                                aria-label={`Mark ${taskTitle} as completed`}
-                              />
-                              <Link className="task-check-link task-check-text" to={`/tasks/${taskDisplayNumber}`}>
-                                {taskTitle}
-                                {shouldShowDueDate ? ` (${copy.duePrefix}: ${task.deadlineLabel})` : ''}
-                              </Link>
-                            </div>
-                          )
-                        })}
+                    <section className="task-section-block task-section-block--additional">
+                      <div className="task-section-header">
+                        <div>
+                          <h3>Additional tasks</h3>
+                          <p className="muted">Tasks added by the judge will appear here.</p>
+                        </div>
                       </div>
-                    ))}
+
+                      {additionalTasks.length > 0 ? (
+                        renderTaskChecklist(additionalTaskColumns)
+                      ) : (
+                        <p className="muted">No additional tasks yet.</p>
+                      )}
+                    </section>
                   </div>
                 )}
               </>
             ) : null}
           </article>
 
-          <div className="stack">
-            {longGameTask && shouldShowLongGameCard ? (
-              <article className="panel stack">
-                <div className="panel-header">
-                  <div className="long-game-title-wrap">
-                    <h2>{copy.longGameTitle}</h2>
-                  </div>
-                </div>
+          <article className="panel stack player-dashboard-card player-dashboard-card--submit" ref={submitSectionRef}>
+            <div className="panel-header">
+              <div>
+                <h2>Submit a new task</h2>
+                <p className="muted">You can add photos, videos, or text responses for your tasks.</p>
+              </div>
+            </div>
 
-                <div className="long-game-content">
-                  {longGameStatus.currentChoice ? (
-                    <p className="muted long-game-choice-summary">
-                      You've chosen to{' '}
-                      <span
-                        className={`long-game-choice-word long-game-choice-word--${longGameStatus.currentChoice}`}
-                      >
-                        {longGameStatus.currentChoice}
-                      </span>{' '}
-                      {longGameStatus.currentChoice === 'cooperate' ? 'with ' : ''}
-                      {longGameStatus.opponent.displayName}
-                    </p>
-                  ) : (
-                    <>
-                      <div className="long-game-meta">
-                        <div className="long-game-meta-row">
-                          <span className="long-game-meta-label">{copy.longGameRoundLabel}</span>
-                          <span className="long-game-meta-value">
-                            {longGameStatus.roundNumber}
-                            {longGameStatus.roundStatus === 'upcoming' ? (
-                              <span className="long-game-status-badge long-game-status-badge--upcoming">
-                                {copy.longGameStatusUpcoming}
-                              </span>
-                            ) : longGameStatus.roundStatus === 'closed' ? (
-                              <span className="long-game-status-badge long-game-status-badge--closed">
-                                {copy.longGameStatusCompleted}
-                              </span>
-                            ) : null}
-                          </span>
-                        </div>
-                        {longGameStatus.endDate ? (
-                          <div className="long-game-meta-row">
-                            <span className="long-game-meta-label">{copy.longGameCountdownLabel}</span>
-                            <span className="long-game-meta-value long-game-countdown">
-                              {formatLongGameCountdown(longGameStatus.endDate, now)}
-                            </span>
-                          </div>
-                        ) : null}
-                        <div className="long-game-meta-row">
-                          <span className="long-game-meta-label">{copy.longGameOpponentLabel}</span>
-                          <span className="long-game-meta-value">{longGameStatus.opponent.displayName}</span>
-                        </div>
-                      </div>
+            {error ? <div className="error-banner">{error}</div> : null}
+            {successMessage ? <div className="success-banner">{successMessage}</div> : null}
 
-                      {longGameError ? <div className="error-banner">{longGameError}</div> : null}
+            <SubmissionForm
+              isSubmitting={isSubmitting}
+              onSubmit={handleCreateSubmission}
+              availableTasks={tasks}
+            />
+          </article>
 
-                      <div className="long-game-choice-prompt">
-                        <p className="muted">{copy.longGameChoosePrompt}</p>
-                        <div className="long-game-choice-buttons">
-                          <button
-                            className="button long-game-cooperate-button"
-                            type="button"
-                            onClick={() => handleConfirmLongGameChoice('cooperate')}
-                            disabled={isSavingLongGameChoice}
-                          >
-                            {copy.cooperate}
-                          </button>
-                          <button
-                            className="button-ghost long-game-betray-button"
-                            type="button"
-                            onClick={() => handleConfirmLongGameChoice('betray')}
-                            disabled={isSavingLongGameChoice}
-                          >
-                            {copy.betray}
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </article>
-            ) : null}
-
+          <div className="player-dashboard-card player-dashboard-card--funds" ref={fundsSectionRef}>
             <FundsRequestCard token={token} />
+          </div>
 
-            <article className="panel stack" ref={submitSectionRef}>
+          {longGameTask ? (
+            <article className="panel stack player-dashboard-card player-dashboard-card--long-game" ref={longGameSectionRef}>
               <div className="panel-header">
-                <div>
-                  <h2>{copy.submitSectionTitle}</h2>
-                  <p className="muted">{copy.submitSectionHint}</p>
+                <div className="long-game-title-wrap">
+                  <h2>The Long Game</h2>
                 </div>
               </div>
 
-              {error ? <div className="error-banner">{error}</div> : null}
-              {successMessage ? <div className="success-banner">{successMessage}</div> : null}
-
-              <SubmissionForm
-                isSubmitting={isSubmitting}
-                onSubmit={handleCreateSubmission}
-                availableTasks={tasks}
-              />
+              <div className="long-game-content">{renderLongGameCardContent()}</div>
             </article>
-          </div>
+          ) : null}
+
+          <article className="panel stack player-dashboard-card player-dashboard-card--submissions" ref={submissionsSectionRef}>
+            <div className="panel-header">
+              <div>
+                <h2>My Submissions</h2>
+                <p className="muted">View all the tasks you have submitted so far.</p>
+              </div>
+            </div>
+
+            {isSubmissionsLoading ? <p className="muted">Loading your submissions…</p> : null}
+            {submissionsError ? <div className="error-banner">{submissionsError}</div> : null}
+            {!isSubmissionsLoading && !submissionsError ? (
+              <SubmissionList
+                submissions={submissions}
+                getTaskName={(taskNumber) => getTaskNameByNumber(tasks, taskNumber)}
+              />
+            ) : null}
+          </article>
         </section>
       </div>
+
+      {showScrollTopButton ? (
+        <button
+          className="button scroll-to-top-button"
+          type="button"
+          onClick={handleScrollToTop}
+          aria-label="Back to top"
+          title="Back to top"
+        >
+          <svg
+            className="scroll-to-top-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 19V5" />
+            <path d="m5 12 7-7 7 7" />
+          </svg>
+        </button>
+      ) : null}
 
       {activeInfo ? (
         <div className="mandatory-info-backdrop" role="presentation" onClick={() => setActiveIconInfo('')}>
@@ -909,7 +1312,7 @@ function HomePage() {
             <h3>{activeInfo.title}</h3>
             <p>{activeInfo.body}</p>
             <button className="button-secondary" type="button" onClick={() => setActiveIconInfo('')}>
-              {copy.close}
+              Close
             </button>
           </div>
         </div>
@@ -921,20 +1324,20 @@ function HomePage() {
             className="mandatory-info-dialog"
             role="dialog"
             aria-modal="true"
-            aria-label={copy.longGameConfirmTitle}
+            aria-label="Confirm choice"
             onClick={(event) => event.stopPropagation()}
           >
-            <h3>{copy.longGameConfirmTitle}</h3>
+            <h3>Confirm choice</h3>
             <p>
-              {copy.longGameConfirmBody}{' '}
-              <strong>{pendingLongGameChoice === 'cooperate' ? copy.cooperate : copy.betray}</strong>
+                Do you want to confirm your choice?{' '}
+                <strong>{pendingLongGameChoice === 'cooperate' ? 'Cooperate' : 'Betray'}</strong>
             </p>
             <div className="mandatory-info-actions">
               <button className="button-ghost" type="button" onClick={handleCancelLongGameChoice}>
-                {copy.cancel}
+                  Cancel
               </button>
               <button className="button-secondary" type="button" onClick={handleApproveLongGameChoice}>
-                {copy.confirm}
+                  Confirm
               </button>
             </div>
           </div>

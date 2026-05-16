@@ -119,6 +119,7 @@ function toTaskPayload(task, completedTaskNumbers, displayNumber) {
     taskNumber: task.taskNumber,
     displayNumber,
     title: task.title,
+    taskSource: task.taskSource ?? 'core',
     mandatory: Boolean(task.mandatory),
     category: task.category,
     goal: task.goal,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import SubmissionForm from '../components/SubmissionForm'
 import { useAuth } from '../hooks/useAuth'
 import {
@@ -17,29 +17,47 @@ function toTitleCase(value) {
     .join(' ')
 }
 
-function formatLongGameCountdown(endDate, nowTimestamp) {
-  if (!endDate) {
-    return '--'
+function getTaskTypes(task) {
+  if (Array.isArray(task?.taskTypes) && task.taskTypes.length > 0) {
+    return task.taskTypes
   }
 
-  const targetDate = new Date(`${endDate}T23:59:59`)
+  return [task?.category ?? 'common']
+}
 
-  if (Number.isNaN(targetDate.getTime())) {
-    return '--'
+function isRecurringTask(task) {
+  return getTaskTypes(task).includes('recurring')
+}
+
+function isAutocompleteTask(task) {
+  return getTaskTypes(task).includes('autocomplete')
+}
+
+function isOneWayCompletionTask(task) {
+  return isAutocompleteTask(task) || task?.taskNumber === 1
+}
+
+function formatLongGameDate(dateString) {
+  if (!dateString) {
+    return ''
   }
 
-  const remainingMs = Math.max(0, targetDate.getTime() - nowTimestamp)
-  const totalSeconds = Math.floor(remainingMs / 1000)
-  const days = Math.floor(totalSeconds / (24 * 60 * 60))
-  const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60))
-  const minutes = Math.floor((totalSeconds % (60 * 60)) / 60)
-  const seconds = totalSeconds % 60
+  const parsed = new Date(`${dateString}T12:00:00`)
 
-  return `${days}d ${hours}h ${minutes}m ${seconds}s`
+  if (Number.isNaN(parsed.getTime())) {
+    return dateString
+  }
+
+  return new Intl.DateTimeFormat('en-IE', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  }).format(parsed)
 }
 
 function TaskDetailsPage() {
-  const { token, user } = useAuth()
+  const { token } = useAuth()
+  const navigate = useNavigate()
   const { taskNumber: taskDisplayNumber } = useParams()
   const [task, setTask] = useState(null)
   const [error, setError] = useState('')
@@ -50,20 +68,8 @@ function TaskDetailsPage() {
   const [isSavingCompletion, setIsSavingCompletion] = useState(false)
   const [longGameStatus, setLongGameStatus] = useState(null)
   const [longGameError, setLongGameError] = useState('')
-  const [isSavingLongGameChoice, setIsSavingLongGameChoice] = useState(false)
   const [pendingLongGameChoice, setPendingLongGameChoice] = useState('')
-  const [longGameNow, setLongGameNow] = useState(() => Date.now())
   const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      setLongGameNow(Date.now())
-    }, 1000)
-
-    return () => {
-      clearInterval(intervalId)
-    }
-  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -139,9 +145,14 @@ function TaskDetailsPage() {
     goal: task?.goal ?? '',
     description: task?.description ?? '',
   }), [task])
+  const isRecurring = isRecurringTask(task)
+  const isCompleted = !isRecurring && Boolean(task?.isCompleted)
+  const isCompletionLocked = isOneWayCompletionTask(task) && isCompleted
+
+  const shouldShowSubmissionForm = task?.hasSubmission !== false
 
   async function handleToggleCompletion() {
-    if (!task) {
+    if (!task || isRecurringTask(task) || (isOneWayCompletionTask(task) && task.isCompleted)) {
       return
     }
 
@@ -169,7 +180,14 @@ function TaskDetailsPage() {
     setIsSubmitting(true)
 
     try {
-      await createSubmission({ token, ...payload })
+      const data = await createSubmission({ token, ...payload })
+      if (Array.isArray(data?.completedTaskNumbers)) {
+        setTask((current) =>
+          current
+            ? { ...current, isCompleted: data.completedTaskNumbers.includes(current.taskNumber) }
+            : current,
+        )
+      }
       setSubmitSuccess('Task submitted successfully.')
     } catch (taskSubmitError) {
       setSubmitError(taskSubmitError.message)
@@ -180,24 +198,26 @@ function TaskDetailsPage() {
 
   async function handleSelectLongGameChoice(choice) {
     setLongGameError('')
-    setIsSavingLongGameChoice(true)
 
     try {
       await saveLongGameChoice(token, choice)
       setLongGameStatus((current) => (current ? { ...current, currentChoice: choice } : current))
     } catch (choiceError) {
       setLongGameError(choiceError.message)
-    } finally {
-      setIsSavingLongGameChoice(false)
     }
   }
 
   function handleConfirmLongGameChoice(choice) {
-    if (!choice || isSavingLongGameChoice || longGameStatus?.currentChoice) {
+    setPendingLongGameChoice(choice)
+  }
+
+  function handleGoBack() {
+    if (window.history.length > 1) {
+      navigate(-1)
       return
     }
 
-    setPendingLongGameChoice(choice)
+    navigate('/')
   }
 
   function handleCancelLongGameChoice() {
@@ -215,7 +235,7 @@ function TaskDetailsPage() {
   }
 
   const copy = {
-    back: 'Back to home',
+    back: 'Back',
     loading: 'Loading task details…',
     completed: 'Completed',
     notCompleted: 'Not completed',
@@ -227,11 +247,12 @@ function TaskDetailsPage() {
     longGameTitle: 'This round duel',
     longGameRoundLabel: 'Round',
     longGameCountdownLabel: 'Time remaining',
+    longGameNextRoundLabel: 'Next round begins',
     longGameOpponentLabel: 'Opponent',
     longGameStatusActive: 'Active now',
     longGameStatusUpcoming: 'Upcoming round',
     longGameStatusCompleted: 'Round closed',
-    longGameBye: 'You have a bye in this round.',
+    longGameBye: 'You have no opponent in this round.',
     longGameMissingOpponent: 'Your opponent could not be resolved for this round.',
     cooperate: 'Cooperate',
     betray: 'Betray',
@@ -245,20 +266,104 @@ function TaskDetailsPage() {
     submitHint: 'Upload media, write text, or include both.',
   }
 
-  const shouldShowLongGameCard = Boolean(
-    longGameStatus &&
-      longGameStatus.roundStatus === 'active' &&
-      !longGameStatus.isBye &&
-      longGameStatus.opponent,
-  )
+  const shouldShowLongGameCard = Boolean(task?.taskNumber === 20 && longGameStatus)
+
+  function renderLongGameContent() {
+    if (!longGameStatus) {
+      return null
+    }
+
+    const statusLabel =
+      longGameStatus.roundStatus === 'upcoming'
+        ? copy.longGameStatusUpcoming
+        : longGameStatus.roundStatus === 'completed'
+          ? copy.longGameStatusCompleted
+          : copy.longGameStatusActive
+
+    const nextRoundText = formatLongGameDate(longGameStatus.nextRoundStartDate)
+
+    return (
+      <>
+        <div className="long-game-meta">
+          <div className="long-game-meta-row">
+            <span className="long-game-meta-label">{copy.longGameRoundLabel}</span>
+            <span className="long-game-meta-value">{longGameStatus.roundNumber}</span>
+          </div>
+
+          <div className="long-game-meta-row">
+            <span className="long-game-meta-label">Status</span>
+            <span className="long-game-meta-value">{statusLabel}</span>
+          </div>
+
+          {nextRoundText ? (
+            <div className="long-game-meta-row long-game-meta-row--next-round">
+              <span className="long-game-meta-label">{copy.longGameNextRoundLabel}</span>
+              <span className="long-game-meta-value">{nextRoundText}</span>
+            </div>
+          ) : null}
+
+          {longGameStatus.opponent ? (
+            <div className="long-game-meta-row">
+              <span className="long-game-meta-label">{copy.longGameOpponentLabel}</span>
+              <span className="long-game-meta-value">{longGameStatus.opponent.displayName}</span>
+            </div>
+          ) : null}
+        </div>
+
+        {longGameError ? <div className="error-banner">{longGameError}</div> : null}
+
+        {longGameStatus.isBye ? <p className="muted">{copy.longGameBye}</p> : null}
+
+        {!longGameStatus.isBye && !longGameStatus.opponent ? (
+          <p className="muted">{copy.longGameMissingOpponent}</p>
+        ) : null}
+
+        {!longGameStatus.isBye && longGameStatus.opponent && longGameStatus.currentChoice ? (
+          <p className="muted long-game-choice-summary">
+            You've chosen to{' '}
+            <span className={`long-game-choice-word long-game-choice-word--${longGameStatus.currentChoice}`}>
+              {longGameStatus.currentChoice}
+            </span>{' '}
+            {longGameStatus.currentChoice === 'cooperate' ? 'with ' : ''}
+            {longGameStatus.opponent.displayName}
+          </p>
+        ) : null}
+
+        {!longGameStatus.isBye &&
+        longGameStatus.opponent &&
+        longGameStatus.roundStatus === 'active' &&
+        !longGameStatus.currentChoice ? (
+          <div className="long-game-choice-prompt">
+            <p className="muted">{copy.longGameChoosePrompt}</p>
+            <div className="long-game-choice-buttons">
+              <button
+                className="button long-game-cooperate-button"
+                type="button"
+                onClick={() => handleConfirmLongGameChoice('cooperate')}
+              >
+                {copy.cooperate}
+              </button>
+              <button
+                className="button-ghost long-game-betray-button"
+                type="button"
+                onClick={() => handleConfirmLongGameChoice('betray')}
+              >
+                {copy.betray}
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </>
+    )
+  }
 
   return (
     <main className="app-shell">
       <section className="task-details-layout">
         <div className="button-row">
-          <Link className="button-ghost" to="/">
+          <button className="button-ghost" type="button" onClick={handleGoBack}>
             {copy.back}
-          </Link>
+          </button>
         </div>
 
         <article className="panel task-details-panel">
@@ -269,20 +374,43 @@ function TaskDetailsPage() {
           {!isLoading && !error && task ? (
             <>
               <header className="task-details-header">
-                <span className={`pill ${task.isCompleted ? 'task-pill-complete' : ''}`}>
-                  {task.isCompleted ? copy.completed : copy.notCompleted}
-                </span>
-                <button
-                  className="button-secondary task-completion-button"
-                  type="button"
-                  onClick={handleToggleCompletion}
-                  disabled={isSavingCompletion}
-                >
-                  {task.isCompleted ? copy.markNotCompleted : copy.markCompleted}
-                </button>
+                {isRecurring ? (
+                  <span className="pill task-repeat-pill">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M17 2l4 4-4 4" />
+                      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                      <path d="M7 22l-4-4 4-4" />
+                      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                    </svg>
+                    Recurring task
+                  </span>
+                ) : (
+                  <>
+                    <span className={`pill ${isCompleted ? 'task-pill-complete' : ''}`}>
+                      {isCompleted ? copy.completed : copy.notCompleted}
+                    </span>
+                    <button
+                      className="button-secondary task-completion-button"
+                      type="button"
+                      onClick={handleToggleCompletion}
+                      disabled={isSavingCompletion || isCompletionLocked}
+                    >
+                      {isCompleted ? copy.markNotCompleted : copy.markCompleted}
+                    </button>
+                  </>
+                )}
               </header>
 
-              {completionError ? <div className="error-banner">{completionError}</div> : null}
+              {!isRecurring && completionError ? <div className="error-banner">{completionError}</div> : null}
 
               <h1>{title}</h1>
 
@@ -305,7 +433,7 @@ function TaskDetailsPage() {
                 ) : null}
               </div>
 
-              {task.taskNumber === 20 && shouldShowLongGameCard ? (
+              {shouldShowLongGameCard ? (
                 <section className="task-meta-card long-game-card">
                   <div className="long-game-header-row">
                     <h2>{copy.longGameTitle}</h2>
@@ -313,49 +441,37 @@ function TaskDetailsPage() {
                       <span className="pill">
                         {longGameStatus.roundStatus === 'active'
                           ? copy.longGameStatusActive
-                          : copy.longGameStatusCompleted}
+                          : longGameStatus.roundStatus === 'upcoming'
+                            ? copy.longGameStatusUpcoming
+                            : copy.longGameStatusCompleted}
                       </span>
                     ) : null}
                   </div>
 
-                  {longGameError ? <div className="error-banner">{longGameError}</div> : null}
-
-                  {longGameStatus ? (
-                    <div className="long-game-content">
-                      {longGameStatus.currentChoice ? (
-                        <p className="muted long-game-choice-summary">
-                          You've chosen to{' '}
-                          <span
-                            className={`long-game-choice-word long-game-choice-word--${longGameStatus.currentChoice}`}
-                          >
-                            {longGameStatus.currentChoice}
-                          </span>{' '}
-                          {longGameStatus.currentChoice === 'cooperate' ? 'with ' : ''}
-                          {longGameStatus.opponent.displayName}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
+                  <div className="long-game-content">{renderLongGameContent()}</div>
                 </section>
               ) : null}
 
-              <section className="stack">
-                <div className="panel-header">
-                  <div>
-                    <h2>{copy.submitTitle}</h2>
-                    <p className="muted">{copy.submitHint}</p>
+              {shouldShowSubmissionForm ? (
+                <section className="stack">
+                  <div className="panel-header">
+                    <div>
+                      <h2>{copy.submitTitle}</h2>
+                      <p className="muted">{copy.submitHint}</p>
+                    </div>
                   </div>
-                </div>
 
-                {submitError ? <div className="error-banner">{submitError}</div> : null}
-                {submitSuccess ? <div className="success-banner">{submitSuccess}</div> : null}
+                  {submitError ? <div className="error-banner">{submitError}</div> : null}
+                  {submitSuccess ? <div className="success-banner">{submitSuccess}</div> : null}
 
-                <SubmissionForm
-                  isSubmitting={isSubmitting}
-                  onSubmit={handleCreateSubmission}
-                  fixedTaskNumber={task.taskNumber}
-                />
-              </section>
+                  <SubmissionForm
+                    isSubmitting={isSubmitting}
+                    onSubmit={handleCreateSubmission}
+                    fixedTaskNumber={task.taskNumber}
+                    fixedTask={task}
+                  />
+                </section>
+              ) : null}
             </>
           ) : null}
         </article>

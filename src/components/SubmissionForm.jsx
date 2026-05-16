@@ -72,13 +72,27 @@ function SubmissionForm({
   onSubmit,
   fixedTaskNumber = null,
   availableTasks = [],
+  fixedTask = null,
 }) {
   const hasFixedTaskNumber = Number.isInteger(fixedTaskNumber) && fixedTaskNumber > 0
   const [taskNumber, setTaskNumber] = useState('')
   const [textBody, setTextBody] = useState('')
+  const [markTaskCompleted, setMarkTaskCompleted] = useState(false)
   const [files, setFiles] = useState([])
   const [previews, setPreviews] = useState([])
   const pickerScrollTopRef = useRef(0)
+
+  const selectedTask = useMemo(() => {
+    if (hasFixedTaskNumber) {
+      return fixedTask
+    }
+
+    const normalizedTaskNumber = Number(taskNumber)
+    return availableTasks.find((task) => task.taskNumber === normalizedTaskNumber) ?? null
+  }, [availableTasks, fixedTask, hasFixedTaskNumber, taskNumber])
+  const isAutocompleteTask = selectedTask?.taskTypes?.includes('autocomplete')
+  const isAutocompleteLocked = isAutocompleteTask && Boolean(selectedTask?.isCompleted)
+  const shouldAutoCompleteTask = isAutocompleteTask || markTaskCompleted
 
   const fileName = useMemo(() => {
     if (files.length === 0) {
@@ -116,6 +130,8 @@ function SubmissionForm({
     previewAlt: 'Selected media preview',
     footerHint: 'Add either media, text, or both before submitting.',
     footerHintWithTask: 'Task name is required. Add either media, text, or both before submitting.',
+    markTaskCompleted: 'Mark task as completed',
+    autocompleteLockedHint: 'Autocomplete tasks stay completed once submitted.',
     largeVideoWarning:
       'Large videos can take a while to upload. If this was filmed on a GoPro or other action camera, compress or export it before uploading for the best chance of success.',
     submitting: 'Submitting\u2026',
@@ -127,6 +143,12 @@ function SubmissionForm({
       setTaskNumber(String(fixedTaskNumber))
     }
   }, [fixedTaskNumber, hasFixedTaskNumber])
+
+  useEffect(() => {
+    if (isAutocompleteLocked) {
+      setMarkTaskCompleted(true)
+    }
+  }, [isAutocompleteLocked])
 
   useEffect(() => {
     return () => {
@@ -197,12 +219,14 @@ function SubmissionForm({
       files,
       taskNumber: normalizedTaskNumber,
       textBody: textBody.trim(),
+      markTaskCompleted: shouldAutoCompleteTask,
     })
 
     if (!hasFixedTaskNumber) {
       setTaskNumber('')
     }
     setTextBody('')
+    setMarkTaskCompleted(false)
     setFiles([])
     revokePreviewUrls(previews)
     setPreviews([])
@@ -269,6 +293,18 @@ function SubmissionForm({
         />
         <span className="field-hint">{textBody.length}/4000 characters</span>
       </div>
+
+      <label className="checkbox-field">
+        <input
+          type="checkbox"
+          checked={shouldAutoCompleteTask}
+          onChange={(event) => setMarkTaskCompleted(event.target.checked)}
+          disabled={isSubmitting || isAutocompleteTask}
+        />
+        <span>{copy.markTaskCompleted}</span>
+      </label>
+
+      {isAutocompleteTask ? <p className="field-hint">{copy.autocompleteLockedHint}</p> : null}
 
       {previews.length > 0 ? (
         <div className="submission-preview-grid">

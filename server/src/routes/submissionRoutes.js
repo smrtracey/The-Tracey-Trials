@@ -8,6 +8,18 @@ import { uploadSubmissionFiles } from '../services/cloudinaryService.js'
 
 const submissionRoutes = Router()
 
+function getTaskTypes(task) {
+  if (Array.isArray(task?.taskTypes) && task.taskTypes.length > 0) {
+    return task.taskTypes
+  }
+
+  return [task?.category ?? 'common']
+}
+
+function isAutocompleteTask(task) {
+  return getTaskTypes(task).includes('autocomplete')
+}
+
 async function deleteUploadedFiles(files) {
   await Promise.all(
     files.map(async (file) => {
@@ -67,12 +79,14 @@ submissionRoutes.post('/', upload.array('media', 10), async (request, response, 
       })
     }
 
-    const task = await Task.findOne({ taskNumber }).select('taskNumber title')
+    const task = await Task.findOne({ taskNumber }).select('taskNumber title taskTypes category')
 
     if (!task) {
       await deleteUploadedFiles(uploadedFiles)
       return response.status(404).json({ message: 'Task not found for this submission.' })
     }
+
+    const shouldMarkCompleted = request.body.markTaskCompleted === 'true' || isAutocompleteTask(task)
 
     const mediaItems = await uploadSubmissionFiles(uploadedFiles)
 
@@ -97,8 +111,17 @@ submissionRoutes.post('/', upload.array('media', 10), async (request, response, 
 
     const submissionData = Submission.toClient(submission)
 
+    if (shouldMarkCompleted) {
+      const completedTaskNumbers = new Set(request.user.completedTaskNumbers ?? [])
+      completedTaskNumbers.add(taskNumber)
+      request.user.completedTaskNumbers = [...completedTaskNumbers].sort((a, b) => a - b)
+      await request.user.save()
+    }
+
     return response.status(201).json({
       submission: submissionData,
+      completedTaskNumbers: request.user.completedTaskNumbers ?? [],
+      completionLocked: isAutocompleteTask(task) && (request.user.completedTaskNumbers ?? []).includes(taskNumber),
     })
   } catch (error) {
     await deleteUploadedFiles(uploadedFiles)

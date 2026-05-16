@@ -7,6 +7,7 @@ import HomePage from './pages/HomePage'
 import JudgeDashboardPage from './pages/JudgeDashboardPage'
 import LoginPage from './pages/LoginPage'
 import PlayerDetailsPage from './pages/PlayerDetailsPage'
+import PlayerTasksPage from './pages/PlayerTasksPage'
 import TaskDetailsPage from './pages/TaskDetailsPage'
 
 function App() {
@@ -43,6 +44,14 @@ function App() {
           element={
             <ProtectedRoute requirePasswordUpdated allowedRoles={['judge']}>
               <PlayerDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tasks"
+          element={
+            <ProtectedRoute requirePasswordUpdated allowedRoles={['contestant']}>
+              <PlayerTasksPage />
             </ProtectedRoute>
           }
         />

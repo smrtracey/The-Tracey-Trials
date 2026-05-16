@@ -45,6 +45,10 @@ const userSchema = new mongoose.Schema(
       type: [Number],
       default: [],
     },
+    pinnedTaskNumbers: {
+      type: [Number],
+      default: [],
+    },
     loginBonusRank: {
       type: Number,
       min: 1,
@@ -93,6 +97,7 @@ userSchema.methods.toClient = function toClient() {
     contestantNumber: this.contestantNumber,
     contactEmail: this.contactEmail,
     completedTaskNumbers: this.completedTaskNumbers,
+    pinnedTaskNumbers: this.pinnedTaskNumbers,
     loginBonusRank: this.loginBonusRank,
     loginBonusPoints: this.loginBonusPoints,
     judgeAdjustmentPoints: this.judgeAdjustmentPoints,

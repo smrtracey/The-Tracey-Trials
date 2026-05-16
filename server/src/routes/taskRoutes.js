@@ -61,6 +61,19 @@ function getRelevantRound(referenceDate = getLongGameReferenceDate()) {
   return longGameSchedule[longGameSchedule.length - 1] ?? null
 }
 
+function getNextRoundStartDate(round, roundStatus) {
+  if (!round) {
+    return null
+  }
+
+  if (roundStatus === 'upcoming') {
+    return round.startDate
+  }
+
+  const nextRound = longGameSchedule.find((item) => item.roundNumber === round.roundNumber + 1)
+  return nextRound?.startDate ?? null
+}
+
 function getRoundMatchupForUser(round, username) {
   const normalizedUsername = username.trim().toLowerCase()
 
@@ -114,19 +127,42 @@ async function getAssignedTasksForUser(user) {
   return Task.find(assignedTaskFilterForUser(user)).sort({ taskNumber: 1 })
 }
 
-function toTaskPayload(task, completedTaskNumbers, displayNumber) {
+function getTaskTypes(task) {
+  if (Array.isArray(task.taskTypes) && task.taskTypes.length > 0) {
+    return task.taskTypes
+  }
+
+  return [task.category ?? 'common']
+}
+
+function getPrimaryTaskType(task) {
+  return getTaskTypes(task)[0] ?? 'common'
+}
+
+function isAutocompleteTask(task) {
+  return getTaskTypes(task).includes('autocomplete')
+}
+
+function isOneWayCompletionTask(task) {
+  return isAutocompleteTask(task) || task?.taskNumber === 1
+}
+
+function toTaskPayload(task, completedTaskNumbers, pinnedTaskNumbers, displayNumber) {
   return {
     taskNumber: task.taskNumber,
     displayNumber,
     title: task.title,
     taskSource: task.taskSource ?? 'core',
     mandatory: Boolean(task.mandatory),
-    category: task.category,
+    category: getPrimaryTaskType(task),
+    taskTypes: getTaskTypes(task),
     goal: task.goal,
     description: task.description,
     hasTimeConstraint: task.hasTimeConstraint,
+    hasSubmission: task.hasSubmission !== false,
     deadlineLabel: task.deadlineLabel,
     isCompleted: completedTaskNumbers.includes(task.taskNumber),
+    isPinned: pinnedTaskNumbers.includes(task.taskNumber),
   }
 }
 
@@ -147,10 +183,12 @@ taskRoutes.get('/', async (request, response, next) => {
     const tasks = await getAssignedTasksForUser(request.user)
 
     const completedTaskNumbers = request.user.completedTaskNumbers ?? []
+    const pinnedTaskNumbers = request.user.pinnedTaskNumbers ?? []
 
     response.json({
       completedTaskNumbers,
-      tasks: tasks.map((task, index) => toTaskPayload(task, completedTaskNumbers, index + 1)),
+      pinnedTaskNumbers,
+      tasks: tasks.map((task, index) => toTaskPayload(task, completedTaskNumbers, pinnedTaskNumbers, index + 1)),
     })
   } catch (error) {
     next(error)
@@ -173,9 +211,10 @@ taskRoutes.get('/display/:displayNumber', async (request, response, next) => {
     }
 
     const completedTaskNumbers = request.user.completedTaskNumbers ?? []
+    const pinnedTaskNumbers = request.user.pinnedTaskNumbers ?? []
 
     return response.json({
-      task: toTaskPayload(task, completedTaskNumbers, displayNumber),
+      task: toTaskPayload(task, completedTaskNumbers, pinnedTaskNumbers, displayNumber),
     })
   } catch (error) {
     return next(error)
@@ -191,6 +230,7 @@ taskRoutes.get('/long-game/status', async (request, response, next) => {
     }
 
     const dateKey = getDateKeyInIreland()
+    const roundStatus = getRoundStatus(dateKey, round)
     const matchup = getRoundMatchupForUser(round, request.user.username)
     const decision = await LongGameDecision.findOne({
       user: request.user._id,
@@ -233,9 +273,10 @@ taskRoutes.get('/long-game/status', async (request, response, next) => {
     return response.json({
       longGame: {
         roundNumber: round.roundNumber,
-        roundStatus: getRoundStatus(dateKey, round),
+        roundStatus,
         startDate: round.startDate,
         endDate: round.endDate,
+        nextRoundStartDate: getNextRoundStartDate(round, roundStatus),
         isBye: matchup.isBye,
         opponent,
         currentChoice: decision?.choice ?? null,
@@ -409,10 +450,55 @@ taskRoutes.get('/:taskNumber', async (request, response, next) => {
     }
 
     const completedTaskNumbers = request.user.completedTaskNumbers ?? []
+    const pinnedTaskNumbers = request.user.pinnedTaskNumbers ?? []
     const displayNumber = tasks.findIndex((assignedTask) => assignedTask.taskNumber === taskNumber) + 1
 
     return response.json({
-      task: toTaskPayload(task, completedTaskNumbers, displayNumber),
+      task: toTaskPayload(task, completedTaskNumbers, pinnedTaskNumbers, displayNumber),
+    })
+  } catch (error) {
+    return next(error)
+  }
+})
+
+taskRoutes.patch('/:taskNumber/pin', async (request, response, next) => {
+  try {
+    const taskNumber = Number(request.params.taskNumber)
+    const { isPinned } = request.body
+
+    if (!Number.isInteger(taskNumber)) {
+      return response.status(400).json({ message: 'Task number must be a whole number.' })
+    }
+
+    if (typeof isPinned !== 'boolean') {
+      return response.status(400).json({ message: 'isPinned must be a boolean.' })
+    }
+
+    const task = await Task.findOne({
+      ...assignedTaskFilterForUser(request.user),
+      taskNumber,
+    }).select('taskNumber taskTypes category')
+
+    if (!task) {
+      return response.status(404).json({ message: 'Task not found.' })
+    }
+
+    const pinnedTaskNumbers = new Set(request.user.pinnedTaskNumbers ?? [])
+
+    if (isPinned) {
+      pinnedTaskNumbers.add(taskNumber)
+    } else {
+      pinnedTaskNumbers.delete(taskNumber)
+    }
+
+    request.user.pinnedTaskNumbers = [...pinnedTaskNumbers].sort((a, b) => a - b)
+    await request.user.save()
+
+    return response.json({
+      taskNumber,
+      isPinned,
+      pinnedTaskNumbers: request.user.pinnedTaskNumbers,
+      user: request.user.toClient(),
     })
   } catch (error) {
     return next(error)
@@ -442,6 +528,12 @@ taskRoutes.patch('/:taskNumber/completion', async (request, response, next) => {
     }
 
     const completedTaskNumbers = new Set(request.user.completedTaskNumbers ?? [])
+
+    if (!isCompleted && isOneWayCompletionTask(task) && completedTaskNumbers.has(taskNumber)) {
+      return response.status(400).json({
+        message: 'This task cannot be marked as incomplete once completed.',
+      })
+    }
 
     if (isCompleted) {
       completedTaskNumbers.add(taskNumber)
@@ -473,9 +565,10 @@ taskRoutes.put('/', async (request, response, next) => {
 
     const normalized = [...new Set(completedTaskNumbers.map(Number))].sort((a, b) => a - b)
 
-    const assignedTasks = await Task.find(assignedTaskFilterForUser(request.user)).select('taskNumber')
+    const assignedTasks = await Task.find(assignedTaskFilterForUser(request.user)).select('taskNumber taskTypes category')
 
     const allowedTaskNumbers = new Set(assignedTasks.map((task) => task.taskNumber))
+    const existingCompletedTaskNumbers = new Set(request.user.completedTaskNumbers ?? [])
 
     const hasInvalidTaskNumber = normalized.some(
       (taskNumber) => !Number.isInteger(taskNumber) || !allowedTaskNumbers.has(taskNumber),
@@ -486,6 +579,18 @@ taskRoutes.put('/', async (request, response, next) => {
         message: 'Completed task list includes a task not assigned to this user.',
       })
     }
+
+    const lockedTaskNumbers = assignedTasks
+      .filter((task) => isOneWayCompletionTask(task) && existingCompletedTaskNumbers.has(task.taskNumber))
+      .map((task) => task.taskNumber)
+
+    for (const taskNumber of lockedTaskNumbers) {
+      if (!normalized.includes(taskNumber)) {
+        normalized.push(taskNumber)
+      }
+    }
+
+    normalized.sort((a, b) => a - b)
 
     request.user.completedTaskNumbers = normalized
     await request.user.save()

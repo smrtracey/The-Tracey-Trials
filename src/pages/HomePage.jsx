@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import FundsRequestCard from '../components/FundsRequestCard'
+import PlayerPrimaryNav from '../components/PlayerPrimaryNav'
 import SubmissionList from '../components/SubmissionList'
 import SubmissionForm from '../components/SubmissionForm'
 import { useAuth } from '../hooks/useAuth'
@@ -11,6 +12,7 @@ import {
   fetchLongGameStatus,
   fetchSubmissions,
   saveLongGameChoice,
+  updateTaskPin,
   updateCompletedTasks,
 } from '../lib/api'
 
@@ -37,36 +39,46 @@ function getTaskNameByNumber(tasks, taskNumber) {
   return task ? toTitleCase(task.title) : `Task #${taskNumber}`
 }
 
-function getCategorySymbol(category) {
-  if (category === 'timed') {
-    return '⏰'
+function getTaskTypes(task) {
+  if (Array.isArray(task.taskTypes) && task.taskTypes.length > 0) {
+    return task.taskTypes
   }
 
-  if (category === 'special') {
-    return '★'
-  }
-
-  if (category === 'race') {
-    return '🏁'
-  }
-
-  return ''
+  return [task.category ?? 'common']
 }
 
-function getCategoryInfoKey(category) {
-  if (category === 'timed') {
-    return 'timed'
-  }
+function getDisplayTaskTypes(task) {
+  return getTaskTypes(task).map((type) =>
+    type === 'autocomplete' || type === 'recurring' || type === 'common'
+      ? 'standard'
+      : type === 'timed'
+        ? 'deadline'
+        : type,
+  )
+}
 
-  if (category === 'special') {
-    return 'special'
-  }
+function formatTaskTypes(task) {
+  return [...new Set(getDisplayTaskTypes(task))].join(', ')
+}
 
-  if (category === 'race') {
-    return 'race'
-  }
+function isRecurringTask(task) {
+  return getTaskTypes(task).includes('recurring')
+}
 
-  return ''
+function isAutocompleteTask(task) {
+  return getTaskTypes(task).includes('autocomplete')
+}
+
+function isOneWayCompletionTask(task) {
+  return isAutocompleteTask(task) || task?.taskNumber === 1
+}
+
+function isTaskCompleted(task, completedTaskNumbers) {
+  return !isRecurringTask(task) && completedTaskNumbers.includes(task.taskNumber)
+}
+
+function isTaskCompletionLocked(task, completedTaskNumbers) {
+  return isOneWayCompletionTask(task) && isTaskCompleted(task, completedTaskNumbers)
 }
 
 function formatLongGameCountdown(endDate, nowTimestamp) {
@@ -168,9 +180,9 @@ function HomePage() {
   const longGameSectionRef = useRef(null)
   const submissionsSectionRef = useRef(null)
   const [now, setNow] = useState(() => Date.now())
-  const [activeIconInfo, setActiveIconInfo] = useState('')
   const [tasks, setTasks] = useState([])
   const [completedTaskNumbers, setCompletedTaskNumbers] = useState([])
+  const [pinnedTaskNumbers, setPinnedTaskNumbers] = useState([])
   const [isTaskListLoading, setIsTaskListLoading] = useState(true)
   const [isTaskListSaving, setIsTaskListSaving] = useState(false)
   const [taskError, setTaskError] = useState('')
@@ -195,18 +207,6 @@ function HomePage() {
   const [notificationMessage, setNotificationMessage] = useState('')
   const [isEnablingNotifications, setIsEnablingNotifications] = useState(false)
   const [showScrollTopButton, setShowScrollTopButton] = useState(false)
-  const [isTaskCardExpanded, setIsTaskCardExpanded] = useState(() => {
-    const key = `tracey-trials-task-card-expanded-${user.id}`
-    return localStorage.getItem(key) !== 'false'
-  })
-  const [isLaptopTaskLayout, setIsLaptopTaskLayout] = useState(() => {
-    if (typeof window === 'undefined') {
-      return false
-    }
-
-    return window.matchMedia('(min-width: 980px)').matches
-  })
-
   const visitKey = useMemo(() => `tracey-trials-home-visited-${user.id}`, [user.id])
   const installDismissKey = useMemo(() => `tracey-trials-install-dismissed-${user.id}`, [user.id])
   const isFirstVisit = useMemo(() => localStorage.getItem(visitKey) !== 'true', [visitKey])
@@ -229,36 +229,6 @@ function HomePage() {
       localStorage.setItem(visitKey, 'true')
     }
   }, [isFirstVisit, visitKey])
-
-  useEffect(() => {
-    const key = `tracey-trials-task-card-expanded-${user.id}`
-    localStorage.setItem(key, String(isTaskCardExpanded))
-  }, [isTaskCardExpanded, user.id])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return undefined
-    }
-
-    const mediaQuery = window.matchMedia('(min-width: 980px)')
-    const syncLaptopLayout = (event) => {
-      setIsLaptopTaskLayout(event.matches)
-    }
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', syncLaptopLayout)
-
-      return () => {
-        mediaQuery.removeEventListener('change', syncLaptopLayout)
-      }
-    }
-
-    mediaQuery.addListener(syncLaptopLayout)
-
-    return () => {
-      mediaQuery.removeListener(syncLaptopLayout)
-    }
-  }, [])
 
   useEffect(() => {
     function syncNotificationPermission() {
@@ -367,6 +337,7 @@ function HomePage() {
         const data = await fetchCompletedTasks(token)
         if (isMounted) {
           setCompletedTaskNumbers(data.completedTaskNumbers)
+          setPinnedTaskNumbers(data.pinnedTaskNumbers ?? [])
           setTasks(data.tasks ?? [])
           setTaskError('')
         }
@@ -473,6 +444,9 @@ function HomePage() {
       if (data?.submission) {
         setSubmissions((current) => [data.submission, ...current])
       }
+      if (Array.isArray(data?.completedTaskNumbers)) {
+        setCompletedTaskNumbers(data.completedTaskNumbers)
+      }
       setSuccessMessage('Task submitted successfully.')
     } catch (submitError) {
       setError(submitError.message)
@@ -516,6 +490,12 @@ function HomePage() {
   }
 
   async function handleToggleTask(taskNumber) {
+    const task = tasks.find((entry) => entry.taskNumber === taskNumber)
+
+    if (task && (isRecurringTask(task) || isTaskCompletionLocked(task, completedTaskNumbers))) {
+      return
+    }
+
     const isCompleted = completedTaskNumbers.includes(taskNumber)
     const nextCompleted = isCompleted
       ? completedTaskNumbers.filter((value) => value !== taskNumber)
@@ -533,6 +513,24 @@ function HomePage() {
       setTaskError(saveError.message)
     } finally {
       setIsTaskListSaving(false)
+    }
+  }
+
+  async function handleToggleTaskPin(taskNumber) {
+    const isPinned = pinnedTaskNumbers.includes(taskNumber)
+    const nextPinned = isPinned
+      ? pinnedTaskNumbers.filter((value) => value !== taskNumber)
+      : [...pinnedTaskNumbers, taskNumber].sort((a, b) => a - b)
+
+    setPinnedTaskNumbers(nextPinned)
+    setTaskError('')
+
+    try {
+      const data = await updateTaskPin(token, taskNumber, !isPinned)
+      setPinnedTaskNumbers(data.pinnedTaskNumbers ?? nextPinned)
+    } catch (saveError) {
+      setPinnedTaskNumbers(pinnedTaskNumbers)
+      setTaskError(saveError.message)
     }
   }
 
@@ -606,77 +604,12 @@ function HomePage() {
     return `${days}d ${hours}h ${minutes}m ${seconds}s`
   }, [now])
 
-  const sortTasks = useMemo(
-    () => (taskList) => {
-      function getTaskPriority(task) {
-        if (task.title.trim().toLowerCase() === 'the long game') {
-          return 0
-        }
-
-        if (task.mandatory) {
-          return 1
-        }
-
-        if (task.category === 'race') {
-          return 2
-        }
-
-        if (task.category === 'special') {
-          return 3
-        }
-
-        if (task.category === 'timed') {
-          return 4
-        }
-
-        if (task.category === 'common') {
-          return 5
-        }
-
-        return 6
-      }
-
-      return [...taskList].sort((a, b) => {
-        const priorityDifference = getTaskPriority(a) - getTaskPriority(b)
-
-        if (priorityDifference !== 0) {
-          return priorityDifference
-        }
-
-        return (a.displayNumber ?? a.taskNumber) - (b.displayNumber ?? b.taskNumber)
-      })
-    },
-    [],
-  )
-
-  const coreTasks = useMemo(
-    () => sortTasks(tasks.filter((task) => (task.taskSource ?? 'core') !== 'additional')),
-    [sortTasks, tasks],
-  )
-
-  const additionalTasks = useMemo(
-    () => sortTasks(tasks.filter((task) => (task.taskSource ?? 'core') === 'additional')),
-    [sortTasks, tasks],
-  )
-
-  const buildTaskColumns = useMemo(
-    () => (taskList) => {
-    const columnCount = 3
-      const itemsPerColumn = Math.ceil(taskList.length / columnCount)
-
-      return Array.from({ length: columnCount }, (_, index) => {
-        const start = index * itemsPerColumn
-        const end = start + itemsPerColumn
-        return taskList.slice(start, end)
-      })
-    },
-    [],
-  )
-
-  const coreTaskColumns = useMemo(() => buildTaskColumns(coreTasks), [buildTaskColumns, coreTasks])
-  const additionalTaskColumns = useMemo(
-    () => buildTaskColumns(additionalTasks),
-    [additionalTasks, buildTaskColumns],
+  const pinnedTasks = useMemo(
+    () =>
+      tasks
+        .filter((task) => pinnedTaskNumbers.includes(task.taskNumber))
+        .sort((first, second) => (first.displayNumber ?? first.taskNumber) - (second.displayNumber ?? second.taskNumber)),
+    [pinnedTaskNumbers, tasks],
   )
 
   function handleScrollToSection(sectionRef) {
@@ -732,110 +665,105 @@ function HomePage() {
   }
 
   const tasksCompletedText =
-    completedTaskNumbers.length === 1
+    tasks.filter((task) => isTaskCompleted(task, completedTaskNumbers)).length === 1
       ? '1 task complete'
-      : `${completedTaskNumbers.length} tasks completed`
-
-  const iconInfoCopyByKey = {
-    mandatory: {
-      title: 'Mandatory task',
-      body: 'The ! icon means this is a mandatory task and must be completed.',
-    },
-    race: {
-      title: 'Race task',
-      body: 'The checkered flag icon marks this as a race task.',
-    },
-    special: {
-      title: 'Special task',
-      body: 'The star icon marks this as a special task.',
-    },
-    timed: {
-      title: 'Timed task',
-      body: 'The clock icon marks this as a timed task.',
-    },
-  }
-
-  const activeInfo = activeIconInfo ? iconInfoCopyByKey[activeIconInfo] : null
+      : `${tasks.filter((task) => isTaskCompleted(task, completedTaskNumbers)).length} tasks completed`
   const shouldShowInstallCard = !isAppInstalled && !isInstallPromptDismissed
   const supportsPush =
     typeof Notification !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window
   const shouldShowNotificationCard = notificationPermission !== 'granted'
-  const shouldShowExpandedTaskCard = isLaptopTaskLayout || isTaskCardExpanded
   const heroSectionLinks = [
     ...(shouldShowNotificationCard
       ? [{ key: 'notifications', label: 'Notifications', ref: notificationSectionRef }]
       : []),
     ...(shouldShowInstallCard ? [{ key: 'install', label: 'Install', ref: installSectionRef }] : []),
-    { key: 'tasks', label: 'Tasks', ref: tasksSectionRef },
+    { key: 'tasks', label: 'Pinned', ref: tasksSectionRef },
     { key: 'submit', label: 'Submit', ref: submitSectionRef },
     { key: 'funds', label: 'Funds', ref: fundsSectionRef },
     ...(longGameTask ? [{ key: 'long-game', label: 'Long Game', ref: longGameSectionRef }] : []),
     { key: 'submissions', label: 'Submissions', ref: submissionsSectionRef },
   ]
 
-  function renderTaskChecklist(taskColumns) {
+  function renderPinnedTaskList(taskList) {
     return (
-      <div className="task-checklist-grid">
-        {taskColumns.map((taskColumn, columnIndex) => (
-          <div key={columnIndex} className="task-checklist-column">
-            {taskColumn.map((task) => {
-              const taskNumber = task.taskNumber
-              const taskDisplayNumber = task.displayNumber ?? task.taskNumber
-              const isCompleted = completedTaskNumbers.includes(taskNumber)
-              const taskTitle = toTitleCase(task.title)
-              const categorySymbol = getCategorySymbol(task.category)
-              const categoryInfoKey = getCategoryInfoKey(task.category)
+      <div className="player-tasks-list">
+        {taskList.map((task) => {
+          const taskNumber = task.taskNumber
+          const taskDisplayNumber = task.displayNumber ?? task.taskNumber
+          const isRecurring = isRecurringTask(task)
+          const isCompleted = isTaskCompleted(task, completedTaskNumbers)
+          const isCompletionLocked = isTaskCompletionLocked(task, completedTaskNumbers)
+          const isPinned = pinnedTaskNumbers.includes(taskNumber)
+          const taskTitle = toTitleCase(task.title)
+          const taskTypeText = formatTaskTypes(task)
 
-              const categoryLabelByKey = {
-                race: 'Race task',
-                special: 'Special task',
-                timed: 'Timed task',
-              }
-
-              return (
-                <div
-                  key={taskNumber}
-                  className={`task-check-item${isCompleted ? ' task-check-item--completed' : ''}`}
+          return (
+            <div
+              key={taskNumber}
+              className={`task-check-item${isCompleted ? ' task-check-item--completed' : ''}${isCompletionLocked && isCompleted ? ' task-check-item--locked-complete' : ''}`}
+            >
+              <button
+                className={`task-pin-button${isPinned ? ' task-pin-button--active' : ''}`}
+                type="button"
+                onClick={() => handleToggleTaskPin(taskNumber)}
+                aria-label={isPinned ? `Unpin ${taskTitle}` : `Pin ${taskTitle}`}
+                aria-pressed={isPinned}
+                title={isPinned ? 'Unpin task' : 'Pin task'}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  <div className="task-corner-icons">
-                    {categorySymbol && categoryInfoKey ? (
-                      <button
-                        className="task-category-icon-button task-category-symbol task-corner-icon"
-                        type="button"
-                        title={categoryLabelByKey[categoryInfoKey]}
-                        aria-label={categoryLabelByKey[categoryInfoKey]}
-                        onClick={() => setActiveIconInfo(categoryInfoKey)}
-                      >
-                        {categorySymbol}
-                      </button>
-                    ) : null}
-                    {task.mandatory ? (
-                      <button
-                        className="mandatory-corner-icon"
-                        type="button"
-                        title="Mandatory task"
-                        aria-label="Mandatory task"
-                        onClick={() => setActiveIconInfo('mandatory')}
-                      >
-                        !
-                      </button>
-                    ) : null}
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={isCompleted}
-                    onChange={() => handleToggleTask(taskNumber)}
-                    disabled={isTaskListSaving}
-                    aria-label={`Mark ${taskTitle} as completed`}
-                  />
-                  <Link className="task-check-link task-check-text" to={`/tasks/${taskDisplayNumber}`}>
-                    {taskTitle}
-                  </Link>
-                </div>
-              )
-            })}
-          </div>
-        ))}
+                  <path d="M12 17v5" />
+                  <path d="M8 10V4.5a4 4 0 1 1 8 0V10" />
+                  <path d="M6 10h12" />
+                  <path d="M7 10c0 3.3 2.2 6 5 6s5-2.7 5-6" />
+                </svg>
+              </button>
+              {isRecurring ? (
+                <span className="task-repeat-indicator" role="img" aria-label={`${taskTitle} repeats`} title="Recurring task">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M17 2l4 4-4 4" />
+                    <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                    <path d="M7 22l-4-4 4-4" />
+                    <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                  </svg>
+                </span>
+              ) : (
+                <input
+                  className={isCompletionLocked && isCompleted ? 'task-checkbox--locked-complete' : ''}
+                  type="checkbox"
+                  checked={isCompleted}
+                  onChange={() => handleToggleTask(taskNumber)}
+                  disabled={isTaskListSaving}
+                  aria-disabled={isCompletionLocked}
+                  aria-label={`Mark ${taskTitle} as completed`}
+                  title={isCompletionLocked ? 'This task stays completed once finished.' : undefined}
+                />
+              )}
+              <div className="task-check-content">
+                <Link className="task-check-link task-check-text" to={`/tasks/${taskDisplayNumber}`}>
+                  {taskTitle}
+                </Link>
+                <span className="task-check-type-text">{taskTypeText}</span>
+              </div>
+            </div>
+          )
+        })}
       </div>
     )
   }
@@ -1027,7 +955,7 @@ function HomePage() {
   }
 
   return (
-    <main className="app-shell">
+    <main className="app-shell app-shell--player">
       <div className="home-layout">
         <section className="hero-panel screen-card" style={{ width: '100%' }} ref={heroSectionRef}>
           <div className="home-signout-row">
@@ -1160,65 +1088,27 @@ function HomePage() {
 
         <section className="panel-grid player-dashboard-grid">
           <article className="panel stack player-dashboard-card player-dashboard-card--tasks" ref={tasksSectionRef}>
-            <div className={`panel-header tasks-panel-header${isLaptopTaskLayout ? ' tasks-panel-header--static' : ''}`}>
+            <div className="panel-header tasks-panel-header tasks-panel-header--static">
               <div>
-                <h2>Tasks</h2>
-                <p className="muted">Here you can see what tasks are available and mark them as completed.</p>
+                <h2>Pinned tasks</h2>
+                <p className="muted">Pin tasks from the Tasks page to keep your shortlist here.</p>
               </div>
-              {isLaptopTaskLayout ? null : (
-                <button
-                  className={`button-ghost task-toggle-button${isTaskCardExpanded ? ' is-expanded' : ''}`}
-                  type="button"
-                  onClick={() => setIsTaskCardExpanded((current) => !current)}
-                  aria-expanded={isTaskCardExpanded}
-                  aria-label={isTaskCardExpanded ? 'Collapse completed tasks' : 'Expand completed tasks'}
-                  title={isTaskCardExpanded ? 'Collapse completed tasks' : 'Expand completed tasks'}
-                >
-                  <span className="task-toggle-icon" aria-hidden="true">
-                    <span className="task-toggle-line task-toggle-line--horizontal" />
-                    <span className="task-toggle-line task-toggle-line--vertical" />
-                  </span>
-                </button>
-              )}
+              <Link className="button-ghost" to="/tasks">
+                Open tasks
+              </Link>
             </div>
 
-            {shouldShowExpandedTaskCard ? (
-              <>
-                {taskError ? <div className="error-banner">{taskError}</div> : null}
+            {taskError ? <div className="error-banner">{taskError}</div> : null}
 
-                {isTaskListLoading ? (
-                  <p className="muted">Loading task checklist…</p>
-                ) : tasks.length === 0 ? (
-                  <p className="muted">No tasks are currently assigned.</p>
-                ) : (
-                  <div className="task-sections">
-                    {coreTasks.length > 0 ? (
-                      <section className="task-section-block">
-                        <div className="task-section-header">
-                          <h3>Main tasks</h3>
-                        </div>
-                        {renderTaskChecklist(coreTaskColumns)}
-                      </section>
-                    ) : null}
-
-                    <section className="task-section-block task-section-block--additional">
-                      <div className="task-section-header">
-                        <div>
-                          <h3>Additional tasks</h3>
-                          <p className="muted">Tasks added by the judge will appear here.</p>
-                        </div>
-                      </div>
-
-                      {additionalTasks.length > 0 ? (
-                        renderTaskChecklist(additionalTaskColumns)
-                      ) : (
-                        <p className="muted">No additional tasks yet.</p>
-                      )}
-                    </section>
-                  </div>
-                )}
-              </>
-            ) : null}
+            {isTaskListLoading ? (
+              <p className="muted">Loading pinned tasks…</p>
+            ) : tasks.length === 0 ? (
+              <p className="muted">No tasks are currently assigned.</p>
+            ) : pinnedTasks.length === 0 ? (
+              <p className="muted">No pinned tasks yet. Pin a task from the Tasks page to keep it here.</p>
+            ) : (
+              renderPinnedTaskList(pinnedTasks)
+            )}
           </article>
 
           <article className="panel stack player-dashboard-card player-dashboard-card--submit" ref={submitSectionRef}>
@@ -1300,23 +1190,7 @@ function HomePage() {
         </button>
       ) : null}
 
-      {activeInfo ? (
-        <div className="mandatory-info-backdrop" role="presentation" onClick={() => setActiveIconInfo('')}>
-          <div
-            className="mandatory-info-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-label={activeInfo.title}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h3>{activeInfo.title}</h3>
-            <p>{activeInfo.body}</p>
-            <button className="button-secondary" type="button" onClick={() => setActiveIconInfo('')}>
-              Close
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <PlayerPrimaryNav />
 
       {pendingLongGameChoice ? (
         <div className="mandatory-info-backdrop" role="presentation" onClick={handleCancelLongGameChoice}>

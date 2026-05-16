@@ -78,7 +78,9 @@ function normalizeJudgeTaskDraft(body) {
         notifyPlayers,
         notificationTitle,
         notificationBody,
+        taskTypes: ['timed'],
         category: 'timed',
+        hasSubmission: true,
         hasTimeConstraint: true,
         deadlineAt,
         deadlineLabel: formatDeadlineLabel(deadlineAt),
@@ -100,12 +102,22 @@ function normalizeJudgeTaskDraft(body) {
       notifyPlayers,
       notificationTitle,
       notificationBody,
+      taskTypes: taskType === 'race' ? ['race'] : ['common'],
       category: taskType === 'race' ? 'race' : 'common',
+      hasSubmission: true,
       hasTimeConstraint: false,
       deadlineAt: null,
       deadlineLabel: '',
     },
   }
+}
+
+function getTaskTypes(task) {
+  if (Array.isArray(task.taskTypes) && task.taskTypes.length > 0) {
+    return task.taskTypes
+  }
+
+  return [task.category ?? 'common']
 }
 
 function toJudgeTaskPayload(task) {
@@ -117,6 +129,8 @@ function toJudgeTaskPayload(task) {
     audience: task.audience,
     assignedUsernames: task.assignedUsernames ?? [],
     category: task.category,
+    taskTypes: getTaskTypes(task),
+    hasSubmission: task.hasSubmission !== false,
     deadlineLabel: task.deadlineLabel ?? '',
   }
 }
@@ -182,7 +196,7 @@ judgeRoutes.patch('/submissions/:id/done', async (request, response, next) => {
 judgeRoutes.get('/tasks', async (_request, response, next) => {
   try {
     const tasks = await Task.find({ isActive: true })
-      .select('taskNumber title taskSource audience assignedUsernames category deadlineLabel')
+      .select('taskNumber title taskSource audience assignedUsernames category taskTypes hasSubmission deadlineLabel')
       .sort({ taskNumber: 1 })
       .lean()
 
@@ -229,7 +243,9 @@ judgeRoutes.post('/tasks', async (request, response, next) => {
       title: normalizedDraft.value.title,
       description: normalizedDraft.value.description,
       goal: normalizedDraft.value.goal,
+      taskTypes: normalizedDraft.value.taskTypes,
       category: normalizedDraft.value.category,
+      hasSubmission: normalizedDraft.value.hasSubmission,
       hasTimeConstraint: normalizedDraft.value.hasTimeConstraint,
       deadlineAt: normalizedDraft.value.deadlineAt,
       deadlineLabel: normalizedDraft.value.deadlineLabel,

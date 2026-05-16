@@ -77,11 +77,12 @@ export async function fetchSubmissions(token) {
   })
 }
 
-export async function createSubmission({ token, files = [], taskNumber, textBody, caption = '' }) {
+export async function createSubmission({ token, files = [], taskNumber, textBody, caption = '', markTaskCompleted = false }) {
   const formData = new FormData()
   formData.append('taskNumber', String(taskNumber))
   formData.append('textBody', textBody)
   formData.append('caption', caption)
+  formData.append('markTaskCompleted', String(markTaskCompleted))
 
   for (const file of files) {
     formData.append('media', file)
@@ -131,6 +132,17 @@ export async function updateCompletedTasks(token, completedTaskNumbers) {
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ completedTaskNumbers }),
+  })
+}
+
+export async function updateTaskPin(token, taskNumber, isPinned) {
+  return request(`/api/tasks/${taskNumber}/pin`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ isPinned }),
   })
 }
 

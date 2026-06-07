@@ -6,16 +6,12 @@ import App from './App.jsx'
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    if (import.meta.env.DEV) {
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        registrations.forEach((registration) => {
-          registration.unregister().catch(() => {})
-        })
+    // Keep this app network-only for now to avoid stale hashed assets after deploys.
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((registration) => {
+        registration.unregister().catch(() => {})
       })
-      return
-    }
-
-    navigator.serviceWorker.register('/sw.js').catch(() => {})
+    })
   })
 }
 

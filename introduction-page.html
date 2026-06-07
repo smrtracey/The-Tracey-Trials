@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tracey Trials — Introduction</title>
+  <style>
+    @page {
+      size: 210mm 110mm landscape;
+      margin: 0;
+    }
+    body {
+      font-family: 'Georgia', serif;
+      background: #f0ece4;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      padding: 24px;
+      justify-content: center;
+    }
+    .card {
+      width: 210mm;
+      height: 110mm;
+      background: #fff;
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.14);
+      page-break-after: always;
+    }
+    .card-header {
+      background: #fff;
+      color: #1a1a2e;
+      padding: 20px 16px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .card-label {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 7.5px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: #888;
+    }
+    .card-title {
+      font-family: 'Georgia', serif;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: #1a1a2e;
+      text-align: center;
+      padding-bottom: 8px;
+    }
+    .card-title-rule {
+      width: 36px;
+      height: 1.5px;
+      background: #1a1a2e;
+      margin: 0 auto 2px;
+    }
+    .card-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding: 14px 20px 12px;
+      gap: 12px;
+      overflow: hidden;
+      text-align: center;
+    }
+    .section-label {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 4px;
+      text-align: center;
+    }
+    .section-text {
+      font-family: 'Georgia', serif;
+      font-size: 13px;
+      color: #333;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+    .card-footer {
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid #ccc;
+      flex-shrink: 0;
+    }
+    .card-footer-brand {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 7.5px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #999;
+    }
+    .card-footer-icon {
+      font-size: 13px;
+      filter: grayscale(1);
+    }
+    @media print {
+      body {
+        background: none;
+        padding: 0;
+        gap: 0;
+        display: block;
+      }
+      .card {
+        box-shadow: none;
+        border-radius: 0;
+        margin: 0 auto;
+        page-break-after: avoid;
+        page-break-inside: avoid;
+        break-inside: avoid;
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <span class="card-label">The Tracey Trials</span>
+      <h1 class="card-title">Welcome, Competitor!</h1>
+      <div class="card-title-rule"></div>
+    </div>
+    <div class="card-body">
+      <div class="section-label">Welcome</div>
+      <div class="section-text">
+        We’re thrilled to have you join The Tracey Trials! Get ready for a unique mix of challenges, creativity, and competition. Play fair, have fun, and may the best competitor win!
+      </div>
+      <div class="section-label">Overview & Rules</div>
+      <div class="section-text">
+        <b>Game Types:</b> Tasks include races, creative challenges, team games, and long-term competitions.<br>
+        <b>Scoring:</b> Points are awarded for task completion, creativity, speed, and special achievements. Some tasks have bonus points or special rules.<br>
+        <b>Timing:</b> Some tasks are timed or have deadlines. Check each task for details.<br>
+        <b>General Rules:</b> Respect other players, follow instructions, and have fun! Cheating or unsportsmanlike conduct may result in penalties.
+      </div>
+      <div class="section-label">Good Luck!</div>
+      <div class="section-text">
+        Give it your all and enjoy the adventure. If you have questions, ask the Taskmaster. Let the games begin!
+      </div>
+    </div>
+    <div class="card-footer">
+      <span class="card-footer-brand">Tracey Trials 2026</span>
+      <span class="card-footer-icon">🎯</span>
+    </div>
+  </div>
+</body>
+</html>

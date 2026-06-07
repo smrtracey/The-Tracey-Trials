@@ -180,8 +180,9 @@ async function seedMidGameData() {
   for (const contestant of contestants) {
     const assignedTasks = tasks.filter((task) => isTaskAssignedToUser(task, contestant.username))
     const completedTaskNumbers = buildCompletedTasksForUser(contestant, assignedTasks)
-    const loginBonusRank = contestant.contestantNumber <= 3 ? contestant.contestantNumber : undefined
-    const loginBonusPoints = contestant.contestantNumber === 1 ? 3 : contestant.contestantNumber === 2 ? 2 : contestant.contestantNumber === 3 ? 1 : 0
+    const loginBonusRank = contestant.contestantNumber <= 4 ? contestant.contestantNumber : undefined
+    const loginBonusPoints =
+      contestant.contestantNumber === 1 ? 5 : contestant.contestantNumber === 2 ? 4 : contestant.contestantNumber === 3 ? 3 : contestant.contestantNumber === 4 ? 2 : 0
 
     userOperations.push({
       updateOne: {

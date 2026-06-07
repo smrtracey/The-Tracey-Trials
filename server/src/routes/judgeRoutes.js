@@ -6,8 +6,8 @@ import { LongGameDecision } from '../models/LongGameDecision.js'
 import { Submission } from '../models/Submission.js'
 import { Task } from '../models/Task.js'
 import { User } from '../models/User.js'
-import { sendPushToAll, sendPushToUsernames } from '../services/pushService.js'
 import { NotificationSchemaModel } from '../models/NotificationSchema.js'
+import { sendStoredNotificationToUsernames } from '../services/notificationService.js'
 
 const judgeRoutes = Router()
 
@@ -264,7 +264,11 @@ judgeRoutes.post('/tasks', async (request, response, next) => {
           ? assignedUsers.map((user) => user.username)
           : await User.find({ role: 'contestant' }).distinct('username')
 
-      pushResult = await sendPushToUsernames(contestantRecipients, payload)
+      const notificationResult = await sendStoredNotificationToUsernames(contestantRecipients, payload, {
+        source: 'task',
+      })
+
+      pushResult = notificationResult.pushResult
     }
 
     return response.status(201).json({
@@ -470,9 +474,12 @@ judgeRoutes.post('/push/send', async (request, response, next) => {
       ? [...new Set(recipients.map((value) => String(value).trim().toLowerCase()).filter(Boolean))]
       : []
 
-    const result = normalizedRecipients.length > 0
-      ? await sendPushToUsernames(normalizedRecipients, { title, body })
-      : await sendPushToAll({ title, body })
+    const allContestantRecipients = await User.find({ role: 'contestant' }).distinct('username')
+    const recipientsToNotify = normalizedRecipients.length > 0 ? normalizedRecipients : allContestantRecipients
+    const notificationResult = await sendStoredNotificationToUsernames(recipientsToNotify, { title, body }, {
+      source: 'judge',
+    })
+    const result = notificationResult.pushResult
     return response.json(result)
   } catch (error) {
     return next(error)
@@ -535,9 +542,12 @@ judgeRoutes.post('/push/send', async (request, response, next) => {
       ? [...new Set(recipients.map((value) => String(value).trim().toLowerCase()).filter(Boolean))]
       : []
 
-    const result = normalizedRecipients.length > 0
-      ? await sendPushToUsernames(normalizedRecipients, { title, body })
-      : await sendPushToAll({ title, body })
+    const allContestantRecipients = await User.find({ role: 'contestant' }).distinct('username')
+    const recipientsToNotify = normalizedRecipients.length > 0 ? normalizedRecipients : allContestantRecipients
+    const notificationResult = await sendStoredNotificationToUsernames(recipientsToNotify, { title, body }, {
+      source: 'judge',
+    })
+    const result = notificationResult.pushResult
     return response.json(result)
   } catch (error) {
     return next(error)

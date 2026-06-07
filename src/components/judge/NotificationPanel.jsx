@@ -45,7 +45,6 @@ function serializeScheduledDateTime(value) {
 export default function NotificationPanel({ contestants, token }) {
   const [notifications, setNotifications] = useState([emptyNotification()]);
   const [isSendingNotification, setIsSendingNotification] = useState(false);
-  const [notifyResult, setNotifyResult] = useState('');
   const [showNotificationForm, setShowNotificationForm] = useState(false);
   const [activeSchemaTab, setActiveSchemaTab] = useState('saved');
   const [templateName, setTemplateName] = useState('');
@@ -73,28 +72,25 @@ export default function NotificationPanel({ contestants, token }) {
     try {
       await saveNotificationSchema(token, { name: name.trim(), notifications });
       setTemplateName('');
-      setNotifyResult('Template saved!');
       const res = await fetchNotificationSchemas(token);
       setNotificationSchemas(sortSchemasOldestFirst(res.schemas));
-    } catch (err) {
-      setNotifyResult('Failed to save template.', err);
+    } catch (error) {
+      console.error('Failed to save notification template.', error);
     }
   }
 
   function handleLoadTemplate(template) {
     setNotifications(template.notifications);
-    setNotifyResult(`Loaded template: ${template.name}`);
   }
 
 
   async function handleDeleteTemplate(name) {
     try {
       await deleteNotificationSchema(token, name);
-      setNotifyResult('Template deleted.');
       const res = await fetchNotificationSchemas(token);
       setNotificationSchemas(sortSchemasOldestFirst(res.schemas));
-    } catch (err) {
-      setNotifyResult('Failed to delete template.', err);
+    } catch (error) {
+      console.error('Failed to delete notification template.', error);
     }
   }
 
@@ -120,22 +116,17 @@ export default function NotificationPanel({ contestants, token }) {
   }
   async function actuallySendNotifications() {
     setIsSendingNotification(true);
-    setNotifyResult('');
     try {
-      let totalSent = 0, totalFailed = 0;
       for (const n of notifications) {
-        const result = await sendJudgePushNotification(token, {
+        await sendJudgePushNotification(token, {
           title: n.title.trim(),
           body: n.body.trim(),
           recipients: n.recipients,
         });
-        totalSent += result.sent || 0;
-        totalFailed += result.failed || 0;
       }
-      setNotifyResult(`Sent to ${totalSent} device(s).${totalFailed > 0 ? ` ${totalFailed} failed.` : ''}`);
       setNotifications([emptyNotification()]);
-    } catch (sendError) {
-      setNotifyResult(`Error: ${sendError.message}`);
+    } catch (error) {
+      console.error('Failed to send notifications.', error);
     } finally {
       setIsSendingNotification(false);
     }
@@ -145,7 +136,6 @@ export default function NotificationPanel({ contestants, token }) {
     event.preventDefault();
     const incomplete = notifications.some(n => !n.title.trim() || !n.body.trim() || n.recipients.length === 0);
     if (incomplete) {
-      setNotifyResult('Please fill in title, message, and select at least one recipient for each notification.');
       return;
     }
     setShowSendConfirm(true);
@@ -386,7 +376,6 @@ export default function NotificationPanel({ contestants, token }) {
                                 const serializedScheduledFor = serializeScheduledDateTime(scheduledDateTime);
 
                                 if (!serializedScheduledFor) {
-                                  setNotifyResult('Please choose a valid scheduled date and time.');
                                   return;
                                 }
 
@@ -398,14 +387,13 @@ export default function NotificationPanel({ contestants, token }) {
                                     scheduledFor: serializedScheduledFor,
                                   });
                                   setShowScheduleModal(false);
-                                  setNotifyResult(`Scheduled ${scheduledName.trim()} for ${formatScheduledDateTime(serializedScheduledFor)}`);
                                   setScheduledName('');
                                   setScheduledDateTime('');
                                   setNotifications([emptyNotification()]);
                                   const res = await fetchNotificationSchemas(token);
                                   setNotificationSchemas(sortSchemasOldestFirst(res.schemas));
                                 } catch (error) {
-                                  setNotifyResult(`Failed to schedule notifications: ${error.message}`);
+                                  console.error('Failed to schedule notifications.', error);
                                 }
                               }}
                               disabled={!scheduledName.trim() || !scheduledDateTime}

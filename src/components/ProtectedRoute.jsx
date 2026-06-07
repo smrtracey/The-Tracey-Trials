@@ -15,8 +15,8 @@ function ProtectedRoute({ children, requirePasswordUpdated = false, allowedRoles
         <section className="screen-card">
           <p className="eyebrow">Checking session</p>
           <div className="title-block">
-            <h1>Loading your contest dashboard…</h1>
-            <p>Restoring your saved login before opening submissions.</p>
+            <h1>Loading your dashboard…</h1>
+            <p>Please allow up to 1 minute for your dashboard to load.</p>
           </div>
         </section>
       </main>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PlayerPrimaryNav from '../components/PlayerPrimaryNav'
 import { useAuth } from '../hooks/useAuth'
@@ -404,17 +404,38 @@ function PlayerTasksPage() {
                     <path d="M21 13v2a4 4 0 0 1-4 4H3" />
                   </svg>
                 </span>
+
               ) : (
-                <input
-                  className={isCompletionLocked && isCompleted ? 'task-checkbox--locked-complete' : ''}
-                  type="checkbox"
-                  checked={isCompleted}
-                  onChange={() => handleToggleTask(taskNumber)}
-                  disabled={isTaskListSaving}
-                  aria-disabled={isCompletionLocked}
-                  aria-label={`Mark ${taskTitle} as completed`}
-                  title={isCompletionLocked ? 'This task stays completed once finished.' : undefined}
-                />
+                task.uncheckable ? (
+                  <span
+                    className="task-deferred-indicator"
+                    title="This task cannot be marked as completed."
+                    aria-label="Uncheckable task"
+                    style={{ display: 'inline-flex', alignItems: 'center', color: '#64748b', marginLeft: 2, marginRight: 2 }}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      width="22"
+                      height="22"
+                      aria-hidden="true"
+                    >
+                      <path fillRule="evenodd" d="M4 8V6a6 6 0 1 1 12 0v2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2Zm2-2a4 4 0 1 1 8 0v2H6V6Zm-2 4h12v6H4v-6Z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                ) : (
+                  <input
+                    className={isCompletionLocked && isCompleted ? 'task-checkbox--locked-complete' : ''}
+                    type="checkbox"
+                    checked={isCompleted}
+                    onChange={() => handleToggleTask(taskNumber)}
+                    disabled={isTaskListSaving}
+                    aria-disabled={isCompletionLocked}
+                    aria-label={`Mark ${taskTitle} as completed`}
+                    title={isCompletionLocked ? 'This task stays completed once finished.' : undefined}
+                  />
+                )
               )}
 
               <div className="task-check-content">

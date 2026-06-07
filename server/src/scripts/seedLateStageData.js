@@ -193,7 +193,7 @@ async function seedLateStageData() {
   const explicitResults = [
     // [roundNumber, playerA, playerB, choiceA, choiceB]
     [1, 'tau', 'paul', 'cooperate', null], // Pending
-    [1, 'maria', 'danny', 'betray', 'cooperate'], // Win (Maria)
+    [1, 'luke', 'danny', 'betray', 'cooperate'], // Win (Luke)
     [1, 'marika', 'pierce', 'cooperate', 'cooperate'], // Cooperate
     [1, 'adriana', 'will', 'betray', 'betray'], // LOSS
   ];

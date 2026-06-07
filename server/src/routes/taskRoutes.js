@@ -163,6 +163,7 @@ function toTaskPayload(task, completedTaskNumbers, pinnedTaskNumbers, displayNum
     deadlineLabel: task.deadlineLabel,
     isCompleted: completedTaskNumbers.includes(task.taskNumber),
     isPinned: pinnedTaskNumbers.includes(task.taskNumber),
+    uncheckable: Boolean(task.uncheckable),
   }
 }
 

@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import FundsRequestCard from '../components/FundsRequestCard'
+import PlayerNotificationsCard from '../components/PlayerNotificationsCard'
 import PlayerPrimaryNav from '../components/PlayerPrimaryNav'
 import SubmissionList from '../components/SubmissionList'
 import SubmissionForm from '../components/SubmissionForm'
 import { useAuth } from '../hooks/useAuth'
 import { subscribeToPushNotifications } from '../lib/push'
 import {
+  clearPlayerNotifications,
   createSubmission,
+  deletePlayerNotification,
   fetchCompletedTasks,
   fetchLongGameStatus,
+  fetchPlayerNotifications,
   fetchSubmissions,
   saveLongGameChoice,
   updateTaskPin,
@@ -172,6 +176,7 @@ function getScrollContainer(element) {
 function HomePage() {
   const { token, user, signOut } = useAuth()
   const heroSectionRef = useRef(null)
+  const notificationsInboxSectionRef = useRef(null)
   const notificationSectionRef = useRef(null)
   const installSectionRef = useRef(null)
   const tasksSectionRef = useRef(null)
@@ -207,6 +212,11 @@ function HomePage() {
   const [notificationMessage, setNotificationMessage] = useState('')
   const [isEnablingNotifications, setIsEnablingNotifications] = useState(false)
   const [showScrollTopButton, setShowScrollTopButton] = useState(false)
+  const [notifications, setNotifications] = useState([])
+  const [isNotificationsLoading, setIsNotificationsLoading] = useState(true)
+  const [notificationsError, setNotificationsError] = useState('')
+  const [deletingNotificationId, setDeletingNotificationId] = useState('')
+  const [isClearingNotifications, setIsClearingNotifications] = useState(false)
   const visitKey = useMemo(() => `tracey-trials-home-visited-${user.id}`, [user.id])
   const installDismissKey = useMemo(() => `tracey-trials-install-dismissed-${user.id}`, [user.id])
   const isFirstVisit = useMemo(() => localStorage.getItem(visitKey) !== 'true', [visitKey])
@@ -362,6 +372,34 @@ function HomePage() {
   useEffect(() => {
     let isMounted = true
 
+    async function loadNotifications() {
+      try {
+        const data = await fetchPlayerNotifications(token)
+        if (isMounted) {
+          setNotifications(data.notifications ?? [])
+          setNotificationsError('')
+        }
+      } catch (loadError) {
+        if (isMounted) {
+          setNotificationsError(loadError.message)
+        }
+      } finally {
+        if (isMounted) {
+          setIsNotificationsLoading(false)
+        }
+      }
+    }
+
+    loadNotifications()
+
+    return () => {
+      isMounted = false
+    }
+  }, [token])
+
+  useEffect(() => {
+    let isMounted = true
+
     async function loadSubmissions() {
       try {
         const data = await fetchSubmissions(token)
@@ -486,6 +524,36 @@ function HomePage() {
       }
     } finally {
       setIsEnablingNotifications(false)
+    }
+  }
+
+  async function handleDeleteNotification(notificationId) {
+    setDeletingNotificationId(notificationId)
+    setNotificationsError('')
+
+    try {
+      await deletePlayerNotification(token, notificationId)
+      setNotifications((current) =>
+        current.filter((notification) => notification.id !== notificationId)
+      )
+    } catch (deleteError) {
+      setNotificationsError(deleteError.message)
+    } finally {
+      setDeletingNotificationId('')
+    }
+  }
+
+  async function handleClearNotifications() {
+    setIsClearingNotifications(true)
+    setNotificationsError('')
+
+    try {
+      await clearPlayerNotifications(token)
+      setNotifications([])
+    } catch (clearError) {
+      setNotificationsError(clearError.message)
+    } finally {
+      setIsClearingNotifications(false)
     }
   }
 
@@ -673,8 +741,9 @@ function HomePage() {
     typeof Notification !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window
   const shouldShowNotificationCard = notificationPermission !== 'granted'
   const heroSectionLinks = [
+    { key: 'inbox', label: 'Inbox', ref: notificationsInboxSectionRef },
     ...(shouldShowNotificationCard
-      ? [{ key: 'notifications', label: 'Notifications', ref: notificationSectionRef }]
+      ? [{ key: 'notifications', label: 'Enable', ref: notificationSectionRef }]
       : []),
     ...(shouldShowInstallCard ? [{ key: 'install', label: 'Install', ref: installSectionRef }] : []),
     { key: 'tasks', label: 'Pinned', ref: tasksSectionRef },
@@ -1037,6 +1106,17 @@ function HomePage() {
             {notificationMessage ? <p className="muted">{notificationMessage}</p> : null}
           </section>
         ) : null}
+
+        <PlayerNotificationsCard
+          notifications={notifications}
+          isLoading={isNotificationsLoading}
+          error={notificationsError}
+          onDelete={handleDeleteNotification}
+          onClearAll={handleClearNotifications}
+          deletingNotificationId={deletingNotificationId}
+          isClearingAll={isClearingNotifications}
+          sectionRef={notificationsInboxSectionRef}
+        />
 
         {shouldShowInstallCard ? (
           <section className="panel pwa-install-card" aria-label="Install app prompt" ref={installSectionRef}>

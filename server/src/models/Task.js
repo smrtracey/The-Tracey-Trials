@@ -80,6 +80,10 @@ const taskSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    uncheckable: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

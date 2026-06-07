@@ -1,5 +1,5 @@
 import { NotificationSchemaModel } from '../models/NotificationSchema.js'
-import { sendPushToUsernames } from './pushService.js'
+import { sendStoredNotificationToUsernames } from './notificationService.js'
 
 const POLL_INTERVAL_MS = 30 * 1000
 
@@ -17,10 +17,10 @@ async function sendScheduledSchema(schema) {
       continue
     }
 
-    await sendPushToUsernames(recipients, {
+    await sendStoredNotificationToUsernames(recipients, {
       title: notification.title,
       body: notification.body,
-    })
+    }, { source: 'scheduled' })
   }
 }
 

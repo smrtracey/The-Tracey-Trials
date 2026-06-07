@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tracey-trials-v1';
+const CACHE_NAME = 'tracey-trials-v2';
 
 function shouldBypassRequest(request) {
   const url = new URL(request.url);
@@ -31,7 +31,7 @@ function shouldBypassRequest(request) {
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(['/', '/index.html'])
+      cache.addAll(['/index.html'])
     )
   );
   self.skipWaiting();
@@ -49,7 +49,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-first strategy: try network, fall back to cache for navigation requests
+// Network-first strategy for navigations to avoid stale app-shell blank screens.
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
@@ -62,34 +62,35 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For navigation requests (page loads), use network-first with cache fallback
+  // For navigation requests (page loads), use network-first and fallback to cached index.
+  // Do not cache route-specific HTML responses to avoid stale deep-link entries.
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
+        .catch(async () => {
+          const cachedIndex = await caches.match('/index.html');
+          if (cachedIndex) return cachedIndex;
+          return Response.error();
         })
-        .catch(() => caches.match('/index.html'))
     );
     return;
   }
 
-  // For static assets, use cache-first
+  // For static assets, use network-first and fallback to cache.
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
+    fetch(request)
+      .then((response) => {
         if (response.ok) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
         }
         return response;
-      });
-    })
+      })
+      .catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        return Response.error();
+      })
   );
 });
 

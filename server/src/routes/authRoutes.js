@@ -10,8 +10,9 @@ const authRoutes = Router()
 const SHARED_SECRETS_TASK_NUMBER = 1
 const LOGIN_BONUS_BY_RANK = new Map([
   [1, 5],
-  [2, 3],
-  [3, 2],
+  [2, 4],
+  [3, 3],
+  [4, 2],
 ])
 
 function bootstrapSharedSecretsInBackground(user) {

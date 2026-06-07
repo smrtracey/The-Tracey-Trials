@@ -283,6 +283,32 @@ export async function deletePushSubscription(token, endpoint) {
   })
 }
 
+export async function fetchPlayerNotifications(token) {
+  return request('/api/push/notifications', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export async function deletePlayerNotification(token, notificationId) {
+  return request(`/api/push/notifications/${notificationId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export async function clearPlayerNotifications(token) {
+  return request('/api/push/notifications', {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
 // Now supports recipients array
 export async function sendJudgePushNotification(token, { title, body, recipients }) {
   return request('/api/judge/push/send', {

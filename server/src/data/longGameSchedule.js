@@ -1,9 +1,9 @@
-const today = new Date('2026-05-08');
+const today = new Date('2026-06-13');
 const rounds = 18;
 const endDate = new Date('2026-12-31');
 const msPerRound = Math.floor((endDate - today) / rounds);
 
-const contestants = ['tau','maria','adriana','marika','katy','will','pierce','cathal','danny'];
+const contestants = ['tau','luke','adriana','marika','katy','will','pierce','cathal','danny'];
 
 function generateSingleRoundRobin(players) {
   const n = players.length;

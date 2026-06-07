@@ -54,10 +54,7 @@ function LoginPage() {
         <div className="title-block login-title-block">
           <h1 className="fun-title">The Tracey Trials</h1>
           <p>Welcome to the Competition!</p>
-          <p>
-            Once you've worked together to figure out the first password, you'll
-            be asked to create your own.
-          </p>
+         
         </div>
 
         {error ? <div className="error-banner">{error}</div> : null}

@@ -14,9 +14,9 @@ hasSubmission: false
 
 ### Task 2
 
-Current Title: Rope Jam Showdown
+Current Title: Jumping to Conclusions
 
-New Title: Rope Jam Showdown
+New Title: Jumping to Conclusions
 
 Goal: Improve your skipping the most
 
@@ -25,8 +25,6 @@ Description: You'll have 30 seconds on Finale day to improve on your day 1 score
 Type: physical
 
 hasSubmission: false
-
-New behaviour:
 
 ### Task 3
 
@@ -42,7 +40,6 @@ Type: race, social
 
 hasSubmission: true
 
-New behaviour:
 
 ### Task 4
 
@@ -58,8 +55,6 @@ Type: social
 
 hasSubmission: true
 
-New behaviour:
-
 ### Task 5
 
 Current Title: Laugh Track Record
@@ -73,8 +68,6 @@ Description: The taskmaster wants to see people laughing so hard they cry!
 Type: social
 
 hasSubmission: true
-
-New behaviour:
 
 ### Task 6
 
@@ -90,8 +83,6 @@ Type: social
 
 hasSubmission: true
 
-New behaviour:
-
 ### Task 7
 
 Current Title: Side questing
@@ -105,8 +96,6 @@ Description: Top 3 players with most completed tasks get points here.
 Type: common
 
 hasSubmission: false
-
-New behaviour:
 
 ### Task 8
 
@@ -122,8 +111,6 @@ Type: common
 
 hasSubmission: true
 
-New behaviour:
-
 ### Task 9
 
 Current Title: Hat's Off
@@ -137,8 +124,6 @@ Description: The taskmaster likes hats. The Taskmaster will pick his favourite.
 Type: fetch quest
 
 hasSubmission: false
-
-New behaviour:
 
 ### Task 10
 
@@ -154,7 +139,6 @@ Type: common
 
 hasSubmission: true
 
-New behaviour:
 
 ### Task 11
 
@@ -170,8 +154,6 @@ Type: autocomplete
 
 hasSubmission: true
 
-New behaviour:
-
 ### Task 12
 
 Current Title: For One Day Only!
@@ -185,8 +167,6 @@ Description: This can be any style you like on any day you like. Interviews, nar
 Type: goPro
 
 hasSubmission: true
-
-New behaviour:
 
 ### Task 13
 
@@ -202,8 +182,6 @@ Type: goPro
 
 hasSubmission: true
 
-New behaviour:
-
 ### Task 14
 
 Current Title: No Half-Assed Glass Task
@@ -217,8 +195,6 @@ Description: The taskmaster like glasses. You may steal only from a pub. Not fro
 Type: fetch quest
 
 hasSubmission: true
-
-New behaviour:
 
 ### Task 15
 
@@ -234,8 +210,6 @@ Type: common
 
 hasSubmission: true
 
-New behaviour:
-
 ### Task 16
 
 Current Title: Task and you shall receive
@@ -244,13 +218,11 @@ New Title: Task and you shall receive
 
 Goal: Create the best Task
 
-Description: You have 3 months to submit your task. In the following 3 months other players will try to complete the tasks you've made. You get points for how much I like the tasks and bonus points if people complete them.
+Description: You have 3 months to submit your task. In the following 3 months other players will try to complete the tasks you've made. Taskmaster will assign points based on how much he likes the task and how many other players completed them.
 
 Type: timed, team
 
 hasSubmission: true
-
-New behaviour:
 
 ### Task 17
 
@@ -266,8 +238,6 @@ Type: fetch quest
 
 hasSubmission: true
 
-New behaviour:
-
 ### Task 18
 
 Current Title: The Dutch Job
@@ -281,8 +251,6 @@ Description: Katy-specific variant: get photos with any 3 other players where th
 Type: just for you
 
 hasSubmission: true
-
-New behaviour:
 
 ### Task 19
 
@@ -298,8 +266,6 @@ Type: timed
 
 hasSubmission: true
 
-New behaviour:
-
 ### Task 20
 
 Current Title: The Long Game
@@ -313,8 +279,6 @@ Description: Recurring decision-based challenge. Every couple of weeks, players 
 Type: recurring
 
 hasSubmission: false
-
-New behaviour:
 
 ### Task 21
 
@@ -333,8 +297,6 @@ Type: team, timed
 
 hasSubmission: true
 
-New behaviour:
-
 ### Task 22
 
 Current Title: Taskmaster's Day Off
@@ -348,8 +310,6 @@ Description: This task becomes available later in the competition. Once it unloc
 Type: upcoming
 
 hasSubmission: true
-
-New behaviour:
 
 
 ### Task 24
@@ -366,8 +326,6 @@ Type: timed
 
 hasSubmission: true
 
-New behaviour:
-
 ### Task 25
 
 Current Title: Love is in the Air
@@ -381,4 +339,3 @@ Description: I want to feel the love
 Type: common
 
 hasSubmission: true
-

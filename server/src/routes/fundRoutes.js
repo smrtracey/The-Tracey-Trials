@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { requireAuth } from '../middleware/auth.js'
 import { FundRequest } from '../models/FundRequest.js'
 import { User } from '../models/User.js'
-import { sendPushToUsernames } from '../services/pushService.js'
+import { sendStoredNotificationToUsernames } from '../services/notificationService.js'
 
 const fundRoutes = Router()
 
@@ -65,10 +65,10 @@ fundRoutes.post('/', async (request, response, next) => {
       const judgeUsernames = judges.map((judge) => judge.username)
 
       if (judgeUsernames.length > 0) {
-        await sendPushToUsernames(judgeUsernames, {
+        await sendStoredNotificationToUsernames(judgeUsernames, {
           title: 'New funds request',
           body: `${request.user.displayName} requested €${amount}.`,
-        })
+        }, { source: 'funds' })
       }
     } catch (pushError) {
       console.error('Failed to send judge push notification for fund request.', pushError)

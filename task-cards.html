@@ -152,6 +152,17 @@
       margin: 12px auto 0;
     }
 
+    .clue-list {
+      margin: 10px 0 0;
+      padding-left: 20px;
+      text-align: left;
+      line-height: 1.45;
+    }
+
+    .clue-list li + li {
+      margin-top: 6px;
+    }
+
     .task-doodle {
       width: 21%;
       margin: 8px auto 0;
@@ -172,6 +183,44 @@
       width: 100%;
       height: auto;
       display: block;
+    }
+
+    /* Only for the long Love is in the Air card */
+    .card.card-side-image .desc-col {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 130px;
+      column-gap: 14px;
+      align-items: start;
+    }
+
+    .card.card-side-image .desc-label {
+      grid-column: 1 / -1;
+      margin-bottom: 0;
+    }
+
+    .card.card-side-image .desc-text {
+      width: 100%;
+      margin: 0;
+      text-align: left;
+      font-size: 12.6px;
+      line-height: 1.46;
+    }
+
+    .card.card-side-image .clue-list {
+      margin-top: 8px;
+      font-size: 12px;
+    }
+
+    .card.card-side-image .task-doodle {
+      width: 100%;
+      margin: 0;
+    }
+
+    .card.card-side-image .task-doodle-image {
+      object-fit: contain;
+      object-position: center;
+      max-height: 150px;
+      margin-top: 2px;
     }
 
     /* ── Badges ────────────────────────────────────────────────── */
@@ -219,8 +268,18 @@
     }
 
     .card-footer-icon {
-      font-size: 13px;
-      filter: grayscale(1);
+      width: 20px;
+      height: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+    }
+
+    .card-footer-icon svg {
+      width: 100%;
+      height: 100%;
+      display: block;
     }
 
     /* ── Print ─────────────────────────────────────────────────── */
@@ -254,20 +313,67 @@ const tasks = [
     number: 1,
     title: 'Shared Secrets',
     goal: 'Work together to figure out the password.',
-    description: "You've all been given private hints. You'll need to work together to figure the password. However, points will only be rewarded to the first 3 players to correctly enter the password.",
+    description: "You've all been given private hints. You'll need to work together to figure the password.",
+    clues: [
+      'For the first word, look to the farmer OR the marathon runner.',
+      'Not one of you have second word, but you all do.',
+      'All of you want the third word. Just one of you can.',
+      "The last word is what's left when the rest fall away.",
+    ],
+    sideImage: true,
     category: 'race',
     mandatory: true,
   },
   {
+    number: '1A',
+    title: 'Shared Secrets - Private Clue',
+    goal: 'Choose wisely about who you share this clue with.',
+    description: 'The farmer and the marathon runner care only about their first initials.',
+    copies: 1,
+    category: 'race',
+  },
+  {
+    number: '1B',
+    title: 'Shared Secrets - Private Clue',
+    goal: 'Choose wisely about who you share this clue with.',
+    description: 'The password is in ALL CAPS.',
+    copies: 1,
+    category: 'race',
+  },
+  {
+    number: '1C',
+    title: 'Shared Secrets - Private Clue',
+    goal: 'Choose wisely about who you share this clue with.',
+    description: 'The last word is the opposite of the second word.',
+    copies: 1,
+    category: 'race',
+  },
+  {
+    number: '1D',
+    title: 'Shared Secrets - Private Clue',
+    goal: 'Choose wisely about who you share this clue with.',
+    description: 'Not draw. Not lose. The other one is word 3',
+    copies: 1,
+    category: 'race',
+  },
+  {
+    number: '1E',
+    title: 'Shared Secrets - Private Clue',
+    goal: 'Choose wisely about who you share this clue with.',
+    description: 'The password ends with an exclamation mark!',
+    copies: 1,
+    category: 'race',
+  },
+  {
     number: 2,
-    title: 'Rope Jam Showdown',
+    title: 'Jumping to Conclusions',
     goal: 'Improve your skipping the most.',
     description: "You'll have 30 seconds on Finale day to improve on your day 1 score.",
     category: 'common',
   },
   {
     number: 3,
-    title: 'Gotta go Fast!',
+    title: 'No Fame, No Gain',
     goal: 'Be the first person to take a selfie with a celebrity.',
     description: "The celebrity can't be just someone in the background like on a stage or whatever. Also must be someone the taskmaster knows. Bonus points for taskmaster shoutouts.",
     category: 'race',
@@ -276,77 +382,77 @@ const tasks = [
     number: 4,
     title: 'Crowd Control!',
     goal: 'Start the biggest group chant.',
-    description: "Must include at least 10 people. The taskmaster will factor in the location of the chant. Chant at a concert — pretty easy. Chant at a funeral — pretty tough…",
+    description: "Must include at least 10 people. The taskmaster will factor in the location of the chant. Chant at a concert - pretty easy. Chant at a funeral - pretty tough...",
     category: 'common',
   },
   {
     number: 5,
     title: 'Laugh Track Record',
     goal: 'Get the best video of another player laughing.',
-    description: "This will go to a group vote. I want to see people laughing so hard they cry!",
+    description: 'The taskmaster wants to see people laughing so hard they cry!',
     category: 'common',
   },
   {
     number: 6,
     title: 'Friendship Farming',
     goal: 'Make the most new friends!',
-    description: "A friend is someone you've been out with after the first time you've met. You need a photo/video of when you met and another with the same person at a later date. No group photos. Include your new friend's name.",
+    description: "A friend is someone you've been out with after the first time you've met. That means for this task, you need to submit a photo/video of when you met and another photo with the same person at a later date. (No group photos allowed). You'll need to include your new friends names.",
     category: 'common',
   },
   {
     number: 7,
     title: 'Side Questing',
     goal: 'Complete the most tasks.',
-    description: "Top 3 players with the most completed tasks get points here.",
+    description: 'Top 3 players with most completed tasks get points here.',
     category: 'common',
   },
   {
     number: 8,
     title: 'Pitch Imperfect',
     goal: 'Perform the best Karaoke.',
-    description: "No points for singing talent. Judging will be based on song choice, costume, and stage presence. You may team up with other players for this one!",
+    description: 'No points here for singing talent. Judging will be based on song choice, costume, and stage presence. You may team up with other players for this one!',
     category: 'common',
   },
   {
     number: 9,
     title: "Hat's Off",
     goal: 'Get the taskmaster the best hat.',
-    description: "I like hats. I will pick my favourite. You have €20 to spend on the hat of your choice.",
+    description: 'The taskmaster likes hats. The Taskmaster will pick his favourite.',
     category: 'common',
   },
   {
     number: 10,
     title: "Sunbelievable",
     goal: 'Take the best sunrise and sunset photo on the same day.',
-    description: "Submit 2 timestamped photos or a timelapse from sunrise to sunset. Hope nobody steals your GoPro during the timelapse…",
+    description: "You'll need to either submit 2 timestamped photos for this one or get a timelapse from sunrise to sunset. Hope nobody steals your goPro during the timelapse...",
     category: 'common',
   },
   {
     number: 11,
-    title: 'Digital Child Neglect Challenge',
+    title: 'The Grim Beeper',
     goal: 'Keep a Tamagotchi alive the longest.',
-    description: "You only get ONE submission. If you think it's gonna die tomorrow, submit today. Longest living Tamagotchi wins.",
+    description: "You only get ONE submission. If you think it's gonna die tomorrow, submit today. Longest living tamagotchi wins.",
     category: 'common',
   },
   {
     number: 12,
-    title: 'For One Day Only!',
+    title: 'Doc-YOU-mentary',
     goal: 'Make the best single-day documentary.',
-    description: "Any style, any day. Interviews, narration, POV — your call. Submissions must be a video.",
+    description: 'This can be any style you like on any day you like. Interviews, narration, POV, up to you. Submissions must be a video.',
     category: 'common',
   },
   {
     number: 13,
-    title: 'The Highlight Reel',
+    title: 'GoPro or Go Home',
     goal: 'Get the most GoPro-worthy videos over the next 6 months.',
-    description: "Cool action shots of anything. Even mundane stuff. If I see an amazing tea-making video that's better than a deep-sea diving video, it gets points. Variety matters.",
+    description: "Videos can range from something as mundane as making a cup of tea to base jumping. Variety matters. Marika and Adriana can't just submit a bunch of motorbike vids...",
     category: 'common',
   },
   {
     number: 14,
-    title: "It's a Tradition — They Expect It",
+    title: 'No Half-Assed Glass Task',
     goal: 'Steal the best glass.',
-    description: "You may steal only from a pub. Not from people's homes. I'll decide which glass is my favourite. Upload photo/video evidence and present the glass at the finale.",
+    description: "The taskmaster like glasses. You may steal only from a pub. Not from people's homes.(With the margins they have on drinks,you've more than covered the cost of the glass. Don't feel too guilty!) The taskmaster will decide which glass is his favourite. Need to upload photo/video evidence of the glass and present the glass on or before the finale.",
     category: 'common',
   },
   {
@@ -354,6 +460,7 @@ const tasks = [
     title: 'Love is in the Air',
     goal: 'Take this beach ball on the most romantic date.',
     description: "This one is a little bit different so that I get to play a little prank on our Danny Boy. Everyone except for Dan gets a beach ball. Dan however gets a sex doll with the same task. If at any point during the competition Dan finds out that he's the only one with a sex doll, he'll get 5 points and everyone else gets 0. Should it come up in conversation, Dan should think everyone has a sex doll.",
+    sideImage: true,
     category: 'common',
   },
   {
@@ -361,29 +468,15 @@ const tasks = [
     title: 'Love is in the Air',
     goal: 'Take your inflatable doll on the most romantic date.',
     description: "Take your inflatable doll on the most romantic date you can imagine. Be creative! Photo or video evidence required.",
+    copies: 1,
     category: 'common',
     imageOverride: 'loveIsInTheAir2.png',
-  },
-  {
-    number: 16,
-    title: 'Task and you shall receive',
-    goal: 'Create the best task.',
-    description: "You have 3 months to submit your task. In the following 3 months, other players will try to complete it. Points for how much I like the task plus bonus points if people complete it.",
-    category: 'timed',
-    deadline: 'Deadline: September 15th',
-  },
-  {
-    number: 17,
-    title: 'In Their Natural Habitat',
-    goal: 'Get the best collection of candid photos of other players.',
-    description: "Can be taken at any time and of everyone — but must be taken without the other player realising. Capped at 20 photo submissions per player.",
-    category: 'common',
   },
   {
     number: 19,
     title: "Let's Get Quizical",
     goal: 'As a team, submit 20 questions for a table quiz.',
-    description: "Quiz played in person at the finale. If nobody from other teams can answer your team's question, your team loses a point.",
+    description: 'Quiz will likely be on finale day but date not finalized. Submit 20 quiz questions as a team of 3. On quiz day, everyone will compete individually using the questions submitted by the teams. Your questions should be fun, fair, and answerable. If one of your team’s questions is asked and nobody gets it right, you lose points.',
     category: 'timed',
     mandatory: true,
   },
@@ -399,7 +492,7 @@ const tasks = [
     number: 21,
     title: 'Eggscessive Engineering',
     goal: 'Create a Rube Goldberg Machine to crack an egg.',
-    description: "Done as teams of 3 with role constraints. First submission decides the order constraints.",
+    description: 'Form a team of 3 players. Then you need to submit the following:\n1. 5 household items\n2. An order of numbers 1-5 (for example 3,2,1,5,4)\n3. A designated builder from your team.',
     category: 'timed',
     deadline: 'Deadline: September 15th',
   },
@@ -407,17 +500,10 @@ const tasks = [
     number: 24,
     title: 'TaskMasterChef',
     goal: 'Create the best homemade recipe and instructional video.',
-    description: "You have 3 months to submit a home recipe in writing and an instructional video. The taskmaster will cook and rank all submissions.",
+    description: 'You have 3 months to submit a home recipe in writing and an instructional video. Taskmaster will cook and rank submissions.',
     category: 'timed',
   },
 ]
-
-const categoryIcon = {
-  race: '🏁',
-  special: '⭐',
-  timed: '⏱',
-  common: '🎯',
-}
 
 const taskDoodleSvg = {
   1: `
@@ -453,10 +539,15 @@ const taskDoodleSvg = {
 }
 
 // Drop your custom images into ./task-card-images and map them here.
-// Example: 2: 'rope-jam-showdown.png'
+// Example: 2: 'jumping-to-conclusions.png'
 const taskImageFiles = {
   1: 'sharedSecrets.png',
-  2: 'ropeJamShowdown.png',
+  '1A': 'sharedSecrets.png',
+  '1B': 'sharedSecrets.png',
+  '1C': 'sharedSecrets.png',
+  '1D': 'sharedSecrets.png',
+  '1E': 'sharedSecrets.png',
+  2: 'jumpingToConclusions.png',
   3: 'GottaGoFast.png',
   4: 'crowdControl.png',
   5: 'laughTrackRecord.png',
@@ -471,55 +562,77 @@ const taskImageFiles = {
  14: 'itsATraditionTheyExpectIt.png',
  15: 'loveIsInTheAir.png',
  '15.1': 'loveIsInTheAir2.png',
- 16: 'TaskAndYouShallReceive.png',
- 17: 'inTheirNaturalHabitat.png',
  19: 'letsGetQuizical.png',
  20: 'theLongGame.png',
  21: 'eggscessiveEngineering.png',
  24: 'taskMasterChef.png',
 }
 
+const DEFAULT_COPIES = 9
+
 for (const task of tasks) {
-  const card = document.createElement('div')
-  card.className = 'card'
+  const copies = Number.isInteger(task.copies) ? task.copies : DEFAULT_COPIES
 
-  const badges = []
-  if (task.mandatory) badges.push(`<span class="badge badge-mandatory">Mandatory</span>`)
-  if (task.category === 'race') badges.push(`<span class="badge badge-race">Race</span>`)
-  if (task.category === 'special') badges.push(`<span class="badge badge-special">Special</span>`)
-  if (task.category === 'timed') badges.push(`<span class="badge badge-timed">Timed</span>`)
-  if (task.deadline) badges.push(`<span class="badge badge-deadline">${task.deadline}</span>`)
+  for (let copyIndex = 0; copyIndex < copies; copyIndex += 1) {
+    const card = document.createElement('div')
+    card.className = 'card'
+    if (task.sideImage) {
+      card.classList.add('card-side-image')
+    }
 
-  card.innerHTML = `
-    <div class="card-header">
-      <span class="card-label">The Tracey Trials</span>
-      <h1 class="card-title">${task.title}</h1>
-      <div class="card-title-rule"></div>
-    </div>
-    <div class="card-accent"></div>
-    <div class="card-body">
-      <div class="goal-block">
-        <div class="goal-label">Your Goal</div>
-        <div class="goal-text">${task.goal}</div>
+    const cluesMarkup = task.clues?.length
+      ? `<ol class="clue-list">${task.clues.map((clue) => `<li>${clue}</li>`).join('')}</ol>`
+      : ''
+
+    const badges = []
+    if (task.mandatory) badges.push(`<span class="badge badge-mandatory">Mandatory</span>`)
+    if (task.category === 'race') badges.push(`<span class="badge badge-race">Race</span>`)
+    if (task.category === 'special') badges.push(`<span class="badge badge-special">Special</span>`)
+    if (task.category === 'timed') badges.push(`<span class="badge badge-timed">Timed</span>`)
+    if (task.deadline) badges.push(`<span class="badge badge-deadline">${task.deadline}</span>`)
+
+    card.innerHTML = `
+      <div class="card-header">
+        <span class="card-label">The Tracey Trials</span>
+        <h1 class="card-title">${task.title}</h1>
+        <div class="card-title-rule"></div>
       </div>
-      ${badges.length ? `<div class="badge-row">${badges.join('')}</div>` : '<div></div>'}
-      <div class="desc-col">
-        <div class="desc-label">Description</div>
-        <p class="desc-text">${task.description}</p>
-        ${taskImageFiles[task.number]
-          ? `<div class="task-doodle"><img class="task-doodle-image" src="./task-card-images/${taskImageFiles[task.number]}" alt="${task.title} doodle" loading="lazy" /></div>`
-          : taskDoodleSvg[task.number]
-            ? `<div class="task-doodle">${taskDoodleSvg[task.number]}</div>`
-            : ''}
+      <div class="card-accent"></div>
+      <div class="card-body">
+        <div class="goal-block">
+          <div class="goal-label">Your Goal</div>
+          <div class="goal-text">${task.goal}</div>
+        </div>
+        ${badges.length ? `<div class="badge-row">${badges.join('')}</div>` : '<div></div>'}
+        <div class="desc-col">
+          <div class="desc-label">Description</div>
+          <div class="desc-text">
+            <p>${task.description}</p>
+            ${cluesMarkup}
+          </div>
+          ${taskImageFiles[task.number]
+            ? `<div class="task-doodle"><img class="task-doodle-image" src="./task-card-images/${taskImageFiles[task.number]}" alt="${task.title} doodle" loading="lazy" /></div>`
+            : taskDoodleSvg[task.number]
+              ? `<div class="task-doodle">${taskDoodleSvg[task.number]}</div>`
+              : ''}
+        </div>
       </div>
-    </div>
-    <div class="card-footer">
-      <span class="card-footer-brand">Tracey Trials 2026</span>
-      <span class="card-footer-icon">${categoryIcon[task.category] ?? '🎯'}</span>
-    </div>
-  `
+      <div class="card-footer">
+        <span class="card-footer-brand">Tracey Trials 2026</span>
+        <span class="card-footer-icon" aria-label="Checklist icon">
+          <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+            <rect x="2.5" y="2.5" width="19" height="19" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M7.2 8.2l1.6 1.7 2.4-2.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7.2 12l1.6 1.7 2.4-2.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7.2 15.8l1.6 1.7 2.4-2.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M13 8.8h4.2M13 12.6h4.2M13 16.4h4.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </span>
+      </div>
+    `
 
-  document.body.appendChild(card)
+    document.body.appendChild(card)
+  }
 }
 </script>
 

@@ -1,3 +1,19 @@
+/* Ensure lock icon for uncheckable tasks matches checkbox size and alignment */
+.task-deferred-indicator {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-soft);
+}
+
+.task-deferred-indicator svg {
+  width: 18px;
+  height: 18px;
+}
 .player-details-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -95,6 +111,102 @@
 .screen-card {
   width: min(100%, 440px);
   padding: 24px;
+}
+
+.player-notifications-card {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.player-notifications-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.player-notification-list {
+  display: grid;
+  gap: 12px;
+}
+
+.player-notification-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-soft);
+}
+
+.player-notification-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.player-notification-copy p {
+  margin: 0;
+  color: var(--text-h);
+}
+
+.player-notification-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.player-notification-meta span {
+  color: var(--text-soft);
+  font-size: 0.9rem;
+}
+
+.player-notification-delete {
+  flex-shrink: 0;
+  color: #dc2626 !important;
+  border: none;
+  background: transparent;
+  padding: 6px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.player-notification-delete svg {
+  display: block;
+  pointer-events: none;
+}
+
+.player-notification-delete:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.player-notification-delete:hover:not(:disabled) {
+  background: rgba(220,38,38,0.08);
+}
+
+.player-notification-delete-all {
+  border: none;
+  background: transparent;
+  padding: 6px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.player-notification-delete-all:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.player-notification-delete-all:hover:not(:disabled) {
+  background: var(--surface-strong);
 }
 
 .eyebrow {

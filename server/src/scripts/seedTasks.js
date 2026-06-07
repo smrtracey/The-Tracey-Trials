@@ -11,7 +11,7 @@ const tasks = [
     title: 'Shared Secrets',
     goal: 'Work together to figure out the password.',
     description:
-      "You've all been given private hints. You'll need to work together to figure the password. However, points will only be rewarded to the first 3 players to correctly enter the password.",
+      "You've all been given private hints. You'll need to work together to figure the password. Clues: 1. For the first word, look to the farmer OR the marathon runner. 2. Not one of you have second word, but you all do. 3. All of you want the third word. Just one of you can. 4. The last word is what's left when the rest fall away.",
     players: ALL,
     mandatory: true,
     hasSubmission: false,
@@ -19,7 +19,7 @@ const tasks = [
   },
   {
     taskNumber: 2,
-    title: 'Rope Jam Showdown',
+    title: 'Jumping to Conclusions',
     goal: 'Improve your skipping the most',
     description: "You'll have 30 seconds on Finale day to improve on your day 1 score",
     players: ALL,
@@ -28,7 +28,7 @@ const tasks = [
   },
   {
     taskNumber: 3,
-    title: 'Gotta go Fast!',
+    title: 'No Fame, No Gain',
     goal: 'Be the first person to take a selfie with a celebrity',
     description:
       "The celebrity can't be just someone in the background like on a stage or whatever. Also must be someone the taskmaster knows. Bonus points for taskmaster shoutouts.",
@@ -136,27 +136,7 @@ const tasks = [
     goal: 'Take this beach ball on the most romantic date.',
     description:
       "This one is a little bit different so that I get to play a little prank on our Danny Boy. Everyone except for Dan gets a beach ball. Dan however gets a sex doll with the same task. If at any point during the competition Dan finds out that he's the only one with a sex doll, he'll get 5 points and everyone else gets 0. Should it come up in conversation, Dan should think everyone has a sex doll.",
-    players: ['tau', 'marika', 'maria', 'adriana', 'will', 'cathal', 'pierce', 'katy'],
-  },
-  {
-    taskNumber: 16,
-    title: 'Task and you shall receive',
-    goal: 'Create the best Task',
-    description:
-      "You have 3 months to submit your task. In the following 3 months other players will try to complete the tasks you've made. You get points for how much I like the tasks and bonus points if people complete them.",
-    players: ALL,
-    taskTypes: ['timed'],
-    category: 'timed',
-    deadlineLabel: 'September 15th',
-    deadlineAt: '2026-09-15T23:59:59.000Z',
-  },
-  {
-    taskNumber: 17,
-    title: 'In their natural habitat',
-    goal: 'Get the best collection of candid photos of other players.',
-    description: 'These can be taken at any time and of anyone but must no other players can see the photos till finale day. (Max 10 photos)',
-    players: ['tau', 'maria', 'marika', 'adriana', 'will', 'cathal', 'pierce', 'danny'],
-    taskTypes: ['fetch quest'],
+    players: ['tau', 'marika', 'luke', 'adriana', 'will', 'cathal', 'pierce', 'katy'],
   },
   {
     taskNumber: 18,

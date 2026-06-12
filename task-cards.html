@@ -173,7 +173,7 @@
       width: 100%;
       height: auto;
       display: block;
-      filter: grayscale(1);
+      filter: grayscale(1) contrast(1.24) brightness(1.09);
       object-fit: cover;
       object-position: 0 -20px;
       /* This crops 20px from the top visually */
@@ -323,46 +323,6 @@ const tasks = [
     sideImage: true,
     category: 'race',
     mandatory: true,
-  },
-  {
-    number: '1A',
-    title: 'Shared Secrets - Private Clue',
-    goal: 'Choose wisely about who you share this clue with.',
-    description: 'The farmer and the marathon runner care only about their first initials.',
-    copies: 1,
-    category: 'race',
-  },
-  {
-    number: '1B',
-    title: 'Shared Secrets - Private Clue',
-    goal: 'Choose wisely about who you share this clue with.',
-    description: 'The password is in ALL CAPS.',
-    copies: 1,
-    category: 'race',
-  },
-  {
-    number: '1C',
-    title: 'Shared Secrets - Private Clue',
-    goal: 'Choose wisely about who you share this clue with.',
-    description: 'The last word is the opposite of the second word.',
-    copies: 1,
-    category: 'race',
-  },
-  {
-    number: '1D',
-    title: 'Shared Secrets - Private Clue',
-    goal: 'Choose wisely about who you share this clue with.',
-    description: 'Not draw. Not lose. The other one is word 3',
-    copies: 1,
-    category: 'race',
-  },
-  {
-    number: '1E',
-    title: 'Shared Secrets - Private Clue',
-    goal: 'Choose wisely about who you share this clue with.',
-    description: 'The password ends with an exclamation mark!',
-    copies: 1,
-    category: 'race',
   },
   {
     number: 2,
@@ -542,11 +502,6 @@ const taskDoodleSvg = {
 // Example: 2: 'jumping-to-conclusions.png'
 const taskImageFiles = {
   1: 'sharedSecrets.png',
-  '1A': 'sharedSecrets.png',
-  '1B': 'sharedSecrets.png',
-  '1C': 'sharedSecrets.png',
-  '1D': 'sharedSecrets.png',
-  '1E': 'sharedSecrets.png',
   2: 'jumpingToConclusions.png',
   3: 'GottaGoFast.png',
   4: 'crowdControl.png',
@@ -568,10 +523,8 @@ const taskImageFiles = {
  24: 'taskMasterChef.png',
 }
 
-const DEFAULT_COPIES = 9
-
 for (const task of tasks) {
-  const copies = Number.isInteger(task.copies) ? task.copies : DEFAULT_COPIES
+  const copies = 1
 
   for (let copyIndex = 0; copyIndex < copies; copyIndex += 1) {
     const card = document.createElement('div')
@@ -583,13 +536,6 @@ for (const task of tasks) {
     const cluesMarkup = task.clues?.length
       ? `<ol class="clue-list">${task.clues.map((clue) => `<li>${clue}</li>`).join('')}</ol>`
       : ''
-
-    const badges = []
-    if (task.mandatory) badges.push(`<span class="badge badge-mandatory">Mandatory</span>`)
-    if (task.category === 'race') badges.push(`<span class="badge badge-race">Race</span>`)
-    if (task.category === 'special') badges.push(`<span class="badge badge-special">Special</span>`)
-    if (task.category === 'timed') badges.push(`<span class="badge badge-timed">Timed</span>`)
-    if (task.deadline) badges.push(`<span class="badge badge-deadline">${task.deadline}</span>`)
 
     card.innerHTML = `
       <div class="card-header">
@@ -603,7 +549,6 @@ for (const task of tasks) {
           <div class="goal-label">Your Goal</div>
           <div class="goal-text">${task.goal}</div>
         </div>
-        ${badges.length ? `<div class="badge-row">${badges.join('')}</div>` : '<div></div>'}
         <div class="desc-col">
           <div class="desc-label">Description</div>
           <div class="desc-text">

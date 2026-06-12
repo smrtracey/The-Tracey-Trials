@@ -37,6 +37,16 @@ if (uniqueNames.size !== firstNames.length) {
 const starterPassword = process.env.SEED_DEFAULT_PASSWORD ?? 'TraceyTrials2026!'
 const judgeStarterPassword = process.env.SEED_JUDGE_PASSWORD ?? 'Judge12345'
 
+function parseDefaultPinnedTaskNumbers() {
+  const raw = process.env.SEED_DEFAULT_PINNED_TASK_NUMBERS ?? '1,2,3,11,20'
+
+  return [...new Set(raw.split(',').map((value) => Number(value.trim())).filter((value) => Number.isInteger(value) && value > 0))].sort(
+    (a, b) => a - b,
+  )
+}
+
+const defaultPinnedTaskNumbers = parseDefaultPinnedTaskNumbers()
+
 const contestants = firstNames.map((firstName, index) => ({
   contestantNumber: index + 1,
   username: firstName,
@@ -68,6 +78,7 @@ async function seedUsers() {
           contestantNumber: contestant.contestantNumber,
           passwordHash,
           completedTaskNumbers: [],
+          pinnedTaskNumbers: defaultPinnedTaskNumbers,
           mustChangePassword: true,
           passwordChangedAt: null,
           role: 'contestant',
@@ -95,6 +106,7 @@ async function seedUsers() {
         contestantNumber: judge.contestantNumber,
         passwordHash: judgePasswordHash,
         completedTaskNumbers: [],
+        pinnedTaskNumbers: [],
         mustChangePassword: true,
         passwordChangedAt: null,
         role: 'judge',

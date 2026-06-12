@@ -38,6 +38,7 @@ SUBMISSION_UPLOAD_LIMIT_MB=2048
 SEED_FIRST_NAMES=alex,blake,casey,devon,ellis,frankie,georgia,harper,indie,jordan,sean
 SEED_DEFAULT_PASSWORD=TraceyTrials2026!
 SEED_JUDGE_PASSWORD=Judge12345
+SEED_DEFAULT_PINNED_TASK_NUMBERS=1,2,3,11,20
 ```
 
 ## Run locally

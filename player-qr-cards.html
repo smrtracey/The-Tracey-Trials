@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tracey Trials — Player QR Cards</title>
+  <style>
+    @page {
+      size: 210mm 110mm landscape;
+      margin: 0;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Georgia', serif;
+      background: #f0ece4;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      padding: 24px;
+      justify-content: center;
+    }
+
+    .card {
+      width: 210mm;
+      height: 110mm;
+      background: #fff;
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.14);
+      page-break-after: always;
+    }
+
+    .card-header {
+      padding: 12px 16px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .card-label {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #7b7b7b;
+    }
+
+    .card-title {
+      font-family: 'Georgia', serif;
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1.1;
+      color: #1a1a2e;
+      text-align: center;
+    }
+
+    .card-title-rule {
+      width: 36px;
+      height: 1.5px;
+      background: #1a1a2e;
+      margin-top: 2px;
+    }
+
+    .card-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 250px;
+      align-items: center;
+      gap: 18px;
+      padding: 0 24px 8px;
+    }
+
+    .left-col {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 10px;
+      text-align: center;
+      height: 100%;
+    }
+
+    .intro-label {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: #8b8b8b;
+    }
+
+    .player-name {
+      font-family: 'Georgia', serif;
+      font-size: 44px;
+      font-weight: 700;
+      color: #1a1a2e;
+      line-height: 1.05;
+      text-wrap: balance;
+    }
+
+    .instruction {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 12px;
+      color: #444;
+      line-height: 1.35;
+    }
+
+    .qr-wrap {
+      width: 250px;
+      height: 250px;
+      border: 1px solid #d9d9d9;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      justify-self: center;
+      align-self: center;
+      overflow: hidden;
+    }
+
+    .qr-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .card-footer {
+      padding: 6px 14px;
+      border-top: 1px solid #ccc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 8px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #8d8d8d;
+      flex-shrink: 0;
+    }
+
+    @media print {
+      body {
+        background: none;
+        padding: 0;
+        gap: 0;
+        display: block;
+      }
+
+      .card {
+        box-shadow: none;
+        border-radius: 0;
+        margin: 0 auto;
+        page-break-after: avoid;
+        page-break-inside: avoid;
+        break-inside: avoid;
+        display: block;
+      }
+
+      .card:nth-of-type(2n) {
+        page-break-after: always;
+      }
+    }
+  </style>
+</head>
+<body>
+<script>
+  const loginUrl = 'https://the-tracey-trials-web.onrender.com/login'
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(loginUrl)}`
+
+  const players = [
+    'Tau',
+    'Luke',
+    'Adriana',
+    'Marika',
+    'Katy',
+    'Will',
+    'Pierce',
+    'Cathal',
+    'Danny',
+  ]
+
+  for (const name of players) {
+    const card = document.createElement('article')
+    card.className = 'card'
+
+    card.innerHTML = `
+      <header class="card-header">
+        <span class="card-label">The Tracey Trials</span>
+        <h1 class="card-title">Player Login Card</h1>
+        <div class="card-title-rule"></div>
+      </header>
+      <section class="card-body">
+        <div class="left-col">
+          <div class="intro-label">Player</div>
+          <div class="player-name">${name}</div>
+          <p class="instruction">Scan this QR code to open the login page.</p>
+        </div>
+        <div class="qr-wrap">
+          <img src="${qrSrc}" alt="Tracey Trials login QR code for ${name}" loading="eager" />
+        </div>
+      </section>
+      <footer class="card-footer">
+        <span>Tracey Trials 2026</span>
+        <span>${loginUrl}</span>
+      </footer>
+    `
+
+    document.body.appendChild(card)
+  }
+</script>
+</body>
+</html>

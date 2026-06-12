@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tracey Trials — Private Clue Cards</title>
+  <style>
+    @page {
+      size: 210mm 110mm landscape;
+      margin: 0;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Georgia', serif;
+      background: #f0ece4;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      padding: 24px;
+      justify-content: center;
+    }
+
+    .card {
+      width: 210mm;
+      height: 110mm;
+      background: #fff;
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.14);
+      page-break-after: always;
+    }
+
+    .card-header {
+      background: #fff;
+      color: #1a1a2e;
+      padding: 20px 16px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .card-label {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 7.5px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: #888;
+    }
+
+    .card-title {
+      font-family: 'Georgia', serif;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: #1a1a2e;
+      text-align: center;
+      padding-bottom: 8px;
+    }
+
+    .card-title-rule {
+      width: 36px;
+      height: 1.5px;
+      background: #1a1a2e;
+      margin: 0 auto 2px;
+    }
+
+    .card-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding: 14px 20px 12px;
+      gap: 12px;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    .goal-block {
+      border-top: 1.5px solid #1a1a2e;
+      border-bottom: 1.5px solid #1a1a2e;
+      padding: 6px 0;
+    }
+
+    .goal-label {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 4px;
+      text-align: center;
+    }
+
+    .goal-text {
+      font-size: 16px;
+      line-height: 1.3;
+      color: #1e1e1e;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .badge {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 20px;
+      border: 1.5px solid;
+    }
+
+    .badge-race {
+      color: #000;
+      border-color: #000;
+    }
+
+    .desc-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .desc-label {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 4px;
+      text-align: center;
+    }
+
+    .desc-text {
+      font-family: 'Georgia', serif;
+      font-size: 13.5px;
+      color: #333;
+      line-height: 1.55;
+      width: 50%;
+      margin: 12px auto 0;
+    }
+
+    .task-doodle {
+      width: 21%;
+      margin: 8px auto 0;
+      color: #111;
+    }
+
+    .task-doodle-image {
+      width: 100%;
+      height: auto;
+      display: block;
+      filter: grayscale(1) contrast(1.24) brightness(1.09);
+      object-fit: cover;
+      object-position: 0 -20px;
+    }
+
+    .card-footer {
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid #ccc;
+      flex-shrink: 0;
+    }
+
+    .card-footer-brand {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 7.5px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #999;
+    }
+
+    .card-footer-icon {
+      width: 20px;
+      height: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+    }
+
+    .card-footer-icon svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    @media print {
+      body {
+        background: none;
+        padding: 0;
+        gap: 0;
+        display: block;
+      }
+
+      .card {
+        box-shadow: none;
+        border-radius: 0;
+        margin: 0 auto;
+        page-break-after: avoid;
+        page-break-inside: avoid;
+        break-inside: avoid;
+        display: block;
+      }
+
+      .card:nth-of-type(2n) {
+        page-break-after: always;
+      }
+    }
+  </style>
+</head>
+<body>
+  <script src="./task-card-private-clues.js"></script>
+  <script>
+    const privateClueTasks = window.traceyPrivateClueTasks ?? []
+
+    const taskImageFiles = {
+      '1A': 'sharedSecrets.png',
+      '1B': 'sharedSecrets.png',
+      '1C': 'sharedSecrets.png',
+      '1D': 'sharedSecrets.png',
+      '1E': 'sharedSecrets.png',
+    }
+
+    for (const task of privateClueTasks) {
+      const card = document.createElement('div')
+      card.className = 'card'
+
+      const badges = []
+      if (task.category === 'race') badges.push('<span class="badge badge-race">Race</span>')
+
+      card.innerHTML = `
+        <div class="card-header">
+          <span class="card-label">The Tracey Trials</span>
+          <h1 class="card-title">${task.title}</h1>
+          <div class="card-title-rule"></div>
+        </div>
+        <div class="card-body">
+          <div class="goal-block">
+            <div class="goal-label">Your Goal</div>
+            <div class="goal-text">${task.goal}</div>
+          </div>
+          ${badges.length ? `<div class="badge-row">${badges.join('')}</div>` : '<div></div>'}
+          <div class="desc-col">
+            <div class="desc-label">Description</div>
+            <div class="desc-text">
+              <p>${task.description}</p>
+            </div>
+            ${taskImageFiles[task.number]
+              ? `<div class="task-doodle"><img class="task-doodle-image" src="./task-card-images/${taskImageFiles[task.number]}" alt="${task.title} doodle" loading="lazy" /></div>`
+              : ''}
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="card-footer-brand">Tracey Trials 2026</span>
+          <span class="card-footer-icon" aria-label="Checklist icon">
+            <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+              <rect x="2.5" y="2.5" width="19" height="19" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M7.2 8.2l1.6 1.7 2.4-2.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7.2 12l1.6 1.7 2.4-2.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7.2 15.8l1.6 1.7 2.4-2.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13 8.8h4.2M13 12.6h4.2M13 16.4h4.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </div>
+      `
+
+      document.body.appendChild(card)
+    }
+  </script>
+</body>
+</html>

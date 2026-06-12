@@ -10,9 +10,18 @@ import { PushSubscription } from '../models/PushSubscription.js'
 
 dotenv.config()
 
+function parseDefaultPinnedTaskNumbers() {
+  const raw = process.env.SEED_DEFAULT_PINNED_TASK_NUMBERS ?? '1,2,3,11,20'
+
+  return [...new Set(raw.split(',').map((value) => Number(value.trim())).filter((value) => Number.isInteger(value) && value > 0))].sort(
+    (a, b) => a - b,
+  )
+}
+
 async function resetCompetitionState() {
   const starterPassword = process.env.SEED_DEFAULT_PASSWORD ?? 'TraceyTrials2026!'
   const judgeStarterPassword = process.env.SEED_JUDGE_PASSWORD ?? 'Judge12345'
+  const defaultPinnedTaskNumbers = parseDefaultPinnedTaskNumbers()
   const starterPasswordHash = await bcrypt.hash(starterPassword, 10)
   const judgePasswordHash = await bcrypt.hash(judgeStarterPassword, 10)
 
@@ -43,6 +52,7 @@ async function resetCompetitionState() {
       $set: {
         passwordHash: starterPasswordHash,
         completedTaskNumbers: [],
+        pinnedTaskNumbers: defaultPinnedTaskNumbers,
         loginBonusPoints: 0,
         judgeAdjustmentPoints: 0,
         mustChangePassword: true,
@@ -62,6 +72,7 @@ async function resetCompetitionState() {
       $set: {
         passwordHash: judgePasswordHash,
         completedTaskNumbers: [],
+        pinnedTaskNumbers: [],
         loginBonusPoints: 0,
         judgeAdjustmentPoints: 0,
         mustChangePassword: true,
@@ -86,6 +97,7 @@ async function resetCompetitionState() {
   console.log(`fundRequestsDeleted=${fundRequestResult.deletedCount}`)
   console.log(`longGameDecisionsDeleted=${longGameDecisionResult.deletedCount}`)
   console.log(`pushSubscriptionsDeleted=${pushSubscriptionResult.deletedCount}`)
+  console.log(`defaultPinnedTaskNumbers=${defaultPinnedTaskNumbers.join(',')}`)
 
   await mongoose.disconnect()
 }

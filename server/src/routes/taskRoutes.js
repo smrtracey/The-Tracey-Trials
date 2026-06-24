@@ -33,11 +33,13 @@ function getDateKeyInIreland(referenceDate = new Date()) {
 }
 
 function getRoundStatus(dateKey, round) {
+  const nextRound = longGameSchedule.find((item) => item.roundNumber === round.roundNumber + 1)
+
   if (dateKey < round.startDate) {
     return 'upcoming'
   }
 
-  if (dateKey > round.endDate) {
+  if (nextRound ? dateKey >= nextRound.startDate : dateKey > round.endDate) {
     return 'completed'
   }
 
@@ -46,7 +48,20 @@ function getRoundStatus(dateKey, round) {
 
 function getRelevantRound(referenceDate = getLongGameReferenceDate()) {
   const dateKey = getDateKeyInIreland(referenceDate)
-  const activeRound = longGameSchedule.find((round) => dateKey >= round.startDate && dateKey <= round.endDate)
+
+  const activeRound = longGameSchedule.find((round, index) => {
+    const nextRound = longGameSchedule[index + 1] ?? null
+
+    if (dateKey < round.startDate) {
+      return false
+    }
+
+    if (nextRound) {
+      return dateKey < nextRound.startDate
+    }
+
+    return dateKey <= round.endDate
+  })
 
   if (activeRound) {
     return activeRound

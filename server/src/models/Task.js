@@ -90,7 +90,7 @@ const taskSchema = new mongoose.Schema(
   },
 )
 
-taskSchema.pre('validate', function syncTaskTypeFields(next) {
+taskSchema.pre('validate', function syncTaskTypeFields() {
   const normalizedTaskTypes = [...new Set((this.taskTypes ?? []).map((value) => String(value).trim()).filter(Boolean))]
 
   if (normalizedTaskTypes.length === 0 && this.category) {
@@ -106,8 +106,6 @@ taskSchema.pre('validate', function syncTaskTypeFields(next) {
 
     this.category = legacyCategory ?? 'common'
   }
-
-  next()
 })
 
 export const Task = mongoose.model('Task', taskSchema)

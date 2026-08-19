@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { getMediaUrl } from '../lib/media'
 
 function formatDate(value) {
@@ -8,29 +9,276 @@ function formatDate(value) {
   }).format(new Date(value))
 }
 
+function getTimestamp(value) {
+  const timestamp = new Date(value).getTime()
+  return Number.isNaN(timestamp) ? 0 : timestamp
+}
+
+function getMediaItems(submission) {
+  if (Array.isArray(submission.mediaItems)) {
+    return submission.mediaItems
+  }
+
+  if (submission.mediaType && submission.mediaUrl) {
+    return [{
+      type: submission.mediaType,
+      url: submission.mediaUrl,
+      originalName: submission.originalName,
+    }]
+  }
+
+  return []
+}
+
+function formatMediaLabel(mediaItems, emptyLabel = 'Text only') {
+  const imageCount = mediaItems.filter((item) => item.type === 'image').length
+  const videoCount = mediaItems.filter((item) => item.type === 'video').length
+
+  if (imageCount > 0 && videoCount > 0) {
+    return `${mediaItems.length} media`
+  }
+
+  if (imageCount > 0) {
+    return `${imageCount} photo${imageCount === 1 ? '' : 's'}`
+  }
+
+  if (videoCount > 0) {
+    return `${videoCount} video${videoCount === 1 ? '' : 's'}`
+  }
+
+  return emptyLabel
+}
+
+function formatGroupSummary(group) {
+  const submissionCount = group.submissions.length
+  const mediaLabel = formatMediaLabel(group.mediaItems)
+  const submissionLabel = `${submissionCount} submission${submissionCount === 1 ? '' : 's'}`
+
+  return `${mediaLabel} · ${submissionLabel}`
+}
+
+function MediaPreview({ mediaItem }) {
+  const mediaUrl = getMediaUrl(mediaItem.url)
+
+  if (mediaItem.type === 'video') {
+    return (
+      <span className="submission-task-preview-media submission-task-preview-media--video">
+        <video src={mediaUrl} muted playsInline preload="metadata" aria-hidden="true" />
+        <span className="submission-task-preview-play" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </span>
+      </span>
+    )
+  }
+
+  return (
+    <span className="submission-task-preview-media">
+      <img src={mediaUrl} alt="" loading="lazy" />
+    </span>
+  )
+}
+
+function TaskPreviewStack({ group }) {
+  const previewItems = group.mediaItems.slice(0, 2)
+  const remainingCount = Math.max(0, group.mediaItems.length - previewItems.length)
+
+  if (previewItems.length === 0) {
+    return (
+      <span className="submission-task-preview submission-task-preview--text" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M6 3h9l4 4v14H6z" />
+          <path d="M14 3v5h5M9 12h7M9 16h7" />
+        </svg>
+      </span>
+    )
+  }
+
+  return (
+    <span className="submission-task-preview" aria-hidden="true">
+      {previewItems.map((mediaItem, index) => (
+        <MediaPreview
+          key={`${mediaItem.url}-${index}`}
+          mediaItem={mediaItem}
+        />
+      ))}
+      {remainingCount > 0 ? (
+        <span className="submission-task-preview-count">+{remainingCount}</span>
+      ) : null}
+    </span>
+  )
+}
+
+function SubmissionMedia({ mediaItem, submission, mediaIndex }) {
+  const mediaUrl = getMediaUrl(mediaItem.url)
+  const fileName = mediaItem.originalName || `submission-media-${mediaIndex + 1}`
+
+  if (mediaItem.type === 'video') {
+    return (
+      <div className="submission-gallery-media submission-gallery-media--video">
+        <video
+          src={mediaUrl}
+          controls
+          playsInline
+          preload="metadata"
+          aria-label={fileName}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <a
+      className="submission-gallery-media"
+      href={mediaUrl}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={`Open ${fileName} in a new tab`}
+    >
+      <img
+        src={mediaUrl}
+        alt={submission.caption || fileName || 'Task submission image'}
+        loading="lazy"
+      />
+    </a>
+  )
+}
+
+function SubmissionGallerySheet({ group, onClose }) {
+  const closeButtonRef = useRef(null)
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+
+    document.body.style.overflow = 'hidden'
+    closeButtonRef.current?.focus()
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [onClose])
+
+  return createPortal(
+    <div className="submission-gallery-backdrop" role="presentation" onClick={onClose}>
+      <section
+        className="submission-gallery-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="submission-gallery-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="submission-gallery-handle" aria-hidden="true" />
+        <header className="submission-gallery-header">
+          <div>
+            <p className="submission-gallery-eyebrow">My submissions</p>
+            <h3 id="submission-gallery-title">{group.taskName}</h3>
+            <p className="submission-gallery-summary">{formatGroupSummary(group)}</p>
+          </div>
+          <button
+            ref={closeButtonRef}
+            type="button"
+            className="submission-gallery-close"
+            onClick={onClose}
+            aria-label="Close submission gallery"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="m6 6 12 12M18 6 6 18" />
+            </svg>
+          </button>
+        </header>
+
+        <div className="submission-gallery-content">
+          {group.submissions.map((submission) => {
+            const mediaItems = getMediaItems(submission)
+            const caption = submission.caption?.trim()
+            const textBody = submission.textBody?.trim()
+
+            return (
+              <article className="submission-gallery-entry" key={submission.id}>
+                <div className="submission-gallery-entry-meta">
+                  <span>{formatDate(submission.createdAt)}</span>
+                  <span>
+                    {mediaItems.length > 0
+                      ? formatMediaLabel(mediaItems)
+                      : 'Text submission'}
+                  </span>
+                </div>
+
+                {caption ? <p className="submission-gallery-caption">{caption}</p> : null}
+                {textBody ? <p className="submission-gallery-text">{textBody}</p> : null}
+
+                {mediaItems.length > 0 ? (
+                  <div className="submission-gallery-media-grid">
+                    {mediaItems.map((mediaItem, mediaIndex) => (
+                      <SubmissionMedia
+                        key={`${submission.id}-${mediaItem.url}-${mediaIndex}`}
+                        mediaItem={mediaItem}
+                        submission={submission}
+                        mediaIndex={mediaIndex}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+              </article>
+            )
+          })}
+        </div>
+      </section>
+    </div>,
+    document.body,
+  )
+}
+
 function SubmissionList({ submissions, getTaskName }) {
+  const [selectedTaskNumber, setSelectedTaskNumber] = useState(null)
   const groupedSubmissions = useMemo(() => {
     const groups = new Map()
 
     for (const submission of submissions) {
-      const taskName = getTaskName(submission.taskNumber)
       const existingGroup = groups.get(submission.taskNumber)
+      const mediaItems = getMediaItems(submission)
 
       if (existingGroup) {
         existingGroup.submissions.push(submission)
+        existingGroup.mediaItems.push(...mediaItems)
+        existingGroup.latestTimestamp = Math.max(
+          existingGroup.latestTimestamp,
+          getTimestamp(submission.createdAt),
+        )
         continue
       }
 
       groups.set(submission.taskNumber, {
         taskNumber: submission.taskNumber,
-        taskName,
+        taskName: getTaskName(submission.taskNumber),
         submissions: [submission],
+        mediaItems: [...mediaItems],
+        latestTimestamp: getTimestamp(submission.createdAt),
       })
     }
 
     return Array.from(groups.values())
+      .map((group) => ({
+        ...group,
+        submissions: [...group.submissions].sort(
+          (first, second) => getTimestamp(second.createdAt) - getTimestamp(first.createdAt),
+        ),
+      }))
+      .sort((first, second) => second.latestTimestamp - first.latestTimestamp)
   }, [getTaskName, submissions])
-  const [expandedTaskNumbers, setExpandedTaskNumbers] = useState([])
+  const selectedGroup = groupedSubmissions.find(
+    (group) => group.taskNumber === selectedTaskNumber,
+  )
 
   if (!submissions.length) {
     return (
@@ -41,80 +289,46 @@ function SubmissionList({ submissions, getTaskName }) {
     )
   }
 
-  function toggleTaskGroup(taskNumber) {
-    setExpandedTaskNumbers((current) =>
-      current.includes(taskNumber)
-        ? current.filter((value) => value !== taskNumber)
-        : [...current, taskNumber],
-    )
-  }
-
   return (
-    <div className="submission-group-list">
-      {groupedSubmissions.map((group) => {
-        const isExpanded = expandedTaskNumbers.includes(group.taskNumber)
-
-        return (
-          <article className="submission-group-card" key={group.taskNumber}>
-            <button
-              type="button"
-              className="submission-group-toggle"
-              onClick={() => toggleTaskGroup(group.taskNumber)}
-              aria-expanded={isExpanded}
+    <>
+      <div className="submission-task-list">
+        {groupedSubmissions.map((group) => (
+          <button
+            type="button"
+            className="submission-task-row"
+            key={group.taskNumber}
+            onClick={() => setSelectedTaskNumber(group.taskNumber)}
+            aria-haspopup="dialog"
+          >
+            <TaskPreviewStack group={group} />
+            <span className="submission-task-row-copy">
+              <strong>{group.taskName}</strong>
+              <span>{formatGroupSummary(group)}</span>
+              <time dateTime={new Date(group.latestTimestamp).toISOString()}>
+                Updated {formatDate(group.latestTimestamp)}
+              </time>
+            </span>
+            <svg
+              className="submission-task-row-chevron"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
             >
-              <span className="submission-group-heading">
-                <strong>{group.taskName}</strong>
-                <span className="meta-text">
-                  {group.submissions.length} submission{group.submissions.length === 1 ? '' : 's'}
-                </span>
-              </span>
-              <span className="submission-group-chevron" aria-hidden="true">
-                {isExpanded ? '−' : '+'}
-              </span>
-            </button>
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </button>
+        ))}
+      </div>
 
-            {isExpanded ? (
-              <div className="submissions-grid">
-                {group.submissions.map((submission) => (
-                  <article className="submission-card" key={submission.id}>
-                    {(submission.mediaItems ?? []).map((mediaItem, index) =>
-                      mediaItem.type === 'image' ? (
-                        <img
-                          key={`${submission.id}-image-${index}`}
-                          src={getMediaUrl(mediaItem.url)}
-                          alt={submission.caption || 'Task submission image'}
-                        />
-                      ) : (
-                        <video
-                          key={`${submission.id}-video-${index}`}
-                          className="submission-media"
-                          src={getMediaUrl(mediaItem.url)}
-                          controls
-                          preload="metadata"
-                        />
-                      ),
-                    )}
-
-                    <header>
-                      <div>
-                        <h3>Submitted</h3>
-                        <p className="meta-text">{formatDate(submission.createdAt)}</p>
-                      </div>
-                    </header>
-
-                    {submission.textBody ? <p className="submission-text">{submission.textBody}</p> : null}
-
-                    {!(submission.mediaItems?.length > 0) && !submission.textBody ? (
-                      <p className="meta-text">No media or text body provided.</p>
-                    ) : null}
-                  </article>
-                ))}
-              </div>
-            ) : null}
-          </article>
-        )
-      })}
-    </div>
+      {selectedGroup ? (
+        <SubmissionGallerySheet
+          group={selectedGroup}
+          onClose={() => setSelectedTaskNumber(null)}
+        />
+      ) : null}
+    </>
   )
 }
 

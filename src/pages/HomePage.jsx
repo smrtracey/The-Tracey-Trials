@@ -887,13 +887,6 @@ function HomePage() {
     "PushManager" in window;
   const shouldShowNotificationCard = notificationPermission !== "granted";
   const heroSectionLinks = [
-    { key: "inbox", label: "Inbox", ref: notificationsInboxSectionRef },
-    ...(shouldShowNotificationCard
-      ? [{ key: "notifications", label: "Enable", ref: notificationSectionRef }]
-      : []),
-    ...(shouldShowInstallCard
-      ? [{ key: "install", label: "Install", ref: installSectionRef }]
-      : []),
     { key: "tasks", label: "Pinned", ref: tasksSectionRef },
     { key: "submit", label: "Submit", ref: submitSectionRef },
     { key: "funds", label: "Funds", ref: fundsSectionRef },

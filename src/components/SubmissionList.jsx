@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { getMediaUrl } from '../lib/media'
 
 function formatDate(value) {
   return new Intl.DateTimeFormat('en-GB', {
@@ -80,14 +81,14 @@ function SubmissionList({ submissions, getTaskName }) {
                       mediaItem.type === 'image' ? (
                         <img
                           key={`${submission.id}-image-${index}`}
-                          src={mediaItem.url}
+                          src={getMediaUrl(mediaItem.url)}
                           alt={submission.caption || 'Task submission image'}
                         />
                       ) : (
                         <video
                           key={`${submission.id}-video-${index}`}
                           className="submission-media"
-                          src={mediaItem.url}
+                          src={getMediaUrl(mediaItem.url)}
                           controls
                           preload="metadata"
                         />

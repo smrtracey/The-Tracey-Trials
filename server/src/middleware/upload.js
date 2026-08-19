@@ -3,7 +3,7 @@ import path from 'path'
 import multer from 'multer'
 import { env } from '../config/env.js'
 
-const uploadDirectory = path.resolve('server/uploads')
+const uploadDirectory = path.resolve('server/tmp-uploads')
 fs.mkdirSync(uploadDirectory, { recursive: true })
 
 const uploadLimitBytes = Math.max(1, env.submissionUploadLimitMb) * 1024 * 1024

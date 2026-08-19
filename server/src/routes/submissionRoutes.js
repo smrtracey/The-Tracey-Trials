@@ -4,7 +4,11 @@ import { requireAuth } from '../middleware/auth.js'
 import { Submission } from '../models/Submission.js'
 import { Task } from '../models/Task.js'
 import { upload } from '../middleware/upload.js'
-import { uploadSubmissionFiles } from '../services/cloudinaryService.js'
+import {
+  deleteSubmissionMediaItems,
+  resolveSubmissionMediaUrl,
+  uploadSubmissionFiles,
+} from '../services/r2Service.js'
 
 const submissionRoutes = Router()
 
@@ -50,9 +54,14 @@ submissionRoutes.get('/', async (_request, response, next) => {
       .limit(24)
       .populate('user')
 
-    response.json({
-      submissions: submissions.map((submission) => Submission.toClient(submission)),
-    })
+    const serializedSubmissions = await Promise.all(
+      submissions.map((submission) => Submission.toClient(
+        submission,
+        { resolveMediaUrl: resolveSubmissionMediaUrl },
+      )),
+    )
+
+    response.json({ submissions: serializedSubmissions })
   } catch (error) {
     next(error)
   }
@@ -60,6 +69,8 @@ submissionRoutes.get('/', async (_request, response, next) => {
 
 submissionRoutes.post('/', upload.array('media', 10), async (request, response, next) => {
   const uploadedFiles = Array.isArray(request.files) ? request.files : []
+  let storedMediaItems = []
+  let submissionWasCreated = false
 
   try {
     const taskNumber = Number(request.body.taskNumber)
@@ -88,28 +99,36 @@ submissionRoutes.post('/', upload.array('media', 10), async (request, response, 
 
     const shouldMarkCompleted = request.body.markTaskCompleted === 'true' || isAutocompleteTask(task)
 
-    const mediaItems = await uploadSubmissionFiles(uploadedFiles)
+    storedMediaItems = await uploadSubmissionFiles(uploadedFiles, {
+      userId: request.user._id,
+      taskNumber,
+    })
 
-    if (mediaItems.some((item) => !item?.url || !item?.type)) {
-      await deleteUploadedFiles(uploadedFiles)
-      return response.status(502).json({
-        message: 'One or more uploaded files could not be processed. Please try again.',
-      })
+    if (storedMediaItems.some((item) => !item?.storageKey || !item?.type)) {
+      const error = new Error('One or more uploaded files could not be processed. Please try again.')
+      error.statusCode = 502
+      throw error
     }
+
+    await deleteUploadedFiles(uploadedFiles)
 
     const submission = await Submission.create({
       user: request.user._id,
       taskNumber,
       textBody,
-      mediaItems,
-      mediaUrl: mediaItems[0]?.url ?? null,
-      mediaType: mediaItems[0]?.type ?? null,
-      originalName: mediaItems[0]?.originalName ?? null,
+      mediaItems: storedMediaItems,
+      mediaUrl: null,
+      mediaType: storedMediaItems[0]?.type ?? null,
+      originalName: storedMediaItems[0]?.originalName ?? null,
     })
+    submissionWasCreated = true
 
     await submission.populate('user')
 
-    const submissionData = Submission.toClient(submission)
+    const submissionData = await Submission.toClient(
+      submission,
+      { resolveMediaUrl: resolveSubmissionMediaUrl },
+    )
 
     if (shouldMarkCompleted) {
       const completedTaskNumbers = new Set(request.user.completedTaskNumbers ?? [])
@@ -125,6 +144,15 @@ submissionRoutes.post('/', upload.array('media', 10), async (request, response, 
     })
   } catch (error) {
     await deleteUploadedFiles(uploadedFiles)
+
+    if (!submissionWasCreated && storedMediaItems.length > 0) {
+      try {
+        await deleteSubmissionMediaItems(storedMediaItems)
+      } catch (cleanupError) {
+        console.error('Could not clean up R2 objects after submission failure.', cleanupError)
+      }
+    }
+
     return next(error)
   }
 })

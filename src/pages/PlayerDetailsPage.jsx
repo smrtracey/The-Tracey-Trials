@@ -4,9 +4,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchJudgeSubmissions, fetchJudgeLongGameRounds, fetchJudgeLeaderboard, fetchJudgeTasks } from '../lib/api';
 import DownloadRenameModal from '../components/DownloadRenameModal';
+import { getMediaUrl } from '../lib/media';
 import '../App.css';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
 export default function PlayerDetailsPage() {
   const [mediaModal, setMediaModal] = useState({ open: false, url: '', type: '', name: '' });
@@ -75,13 +74,6 @@ export default function PlayerDetailsPage() {
     }
 
     return [];
-  }
-
-  function getMediaUrl(url) {
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
-    return `${API_BASE_URL}/${url}`;
   }
 
   // Flatten long game history for this player

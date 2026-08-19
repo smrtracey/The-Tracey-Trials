@@ -2,9 +2,9 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
-const apiBaseUrl = `http://127.0.0.1:${process.env.PORT ?? 4000}`
-const starterPassword = process.env.SEED_DEFAULT_PASSWORD ?? 'TraceyTrials2026!'
-const username = 'tau'
+const apiBaseUrl = process.env.R2_TEST_API_BASE_URL ?? `http://127.0.0.1:${process.env.PORT ?? 4000}`
+const username = process.env.R2_TEST_USERNAME ?? ''
+const password = process.env.R2_TEST_PASSWORD ?? ''
 
 const tinyPngBase64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9p8mN8kAAAAASUVORK5CYII='
@@ -21,6 +21,10 @@ async function requestJson(path, options = {}) {
 }
 
 async function main() {
+  if (!username || !password) {
+    throw new Error('Set R2_TEST_USERNAME and R2_TEST_PASSWORD for a non-production test contestant.')
+  }
+
   const loginResult = await requestJson('/api/auth/login', {
     method: 'POST',
     headers: {
@@ -28,7 +32,7 @@ async function main() {
     },
     body: JSON.stringify({
       username,
-      password: starterPassword,
+      password,
     }),
   })
 
@@ -36,18 +40,7 @@ async function main() {
   const needsPasswordChange = Boolean(loginResult.user?.mustChangePassword)
 
   if (needsPasswordChange) {
-    await requestJson('/api/auth/change-password', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${authToken}`,
-      },
-      body: JSON.stringify({
-        newPassword: 'CloudinaryTest123!',
-        confirmPassword: 'CloudinaryTest123!',
-        contactEmail: `tau+cloudinary-${Date.now()}@example.com`,
-      }),
-    })
+    throw new Error('Complete this test contestant’s first-login password change before running the R2 smoke test.')
   }
 
   const taskResult = await requestJson('/api/tasks', {
@@ -64,11 +57,11 @@ async function main() {
 
   const formData = new FormData()
   formData.append('taskNumber', String(taskNumber))
-  formData.append('textBody', 'Cloudinary upload smoke test.')
+  formData.append('textBody', 'Cloudflare R2 upload smoke test.')
   formData.append(
     'media',
     new Blob([Buffer.from(tinyPngBase64, 'base64')], { type: 'image/png' }),
-    'cloudinary-smoke-test.png',
+    'r2-smoke-test.png',
   )
 
   const submissionResponse = await fetch(`${apiBaseUrl}/api/submissions`, {
@@ -91,8 +84,18 @@ async function main() {
     throw new Error('Submission succeeded but no media URL was returned.')
   }
 
-  if (!mediaUrl.startsWith('https://res.cloudinary.com/')) {
-    throw new Error(`Expected a Cloudinary media URL, received: ${mediaUrl}`)
+  const parsedMediaUrl = new URL(mediaUrl)
+  if (
+    parsedMediaUrl.protocol !== 'https:'
+    || !parsedMediaUrl.hostname.endsWith('.r2.cloudflarestorage.com')
+    || !parsedMediaUrl.searchParams.has('X-Amz-Signature')
+  ) {
+    throw new Error(`Expected a signed Cloudflare R2 media URL, received: ${mediaUrl}`)
+  }
+
+  const mediaResponse = await fetch(mediaUrl)
+  if (!mediaResponse.ok) {
+    throw new Error(`Signed R2 media URL returned ${mediaResponse.status}.`)
   }
 
   const submissionsResult = await requestJson('/api/submissions', {

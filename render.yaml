@@ -18,6 +18,20 @@ services:
         sync: false
       - key: CLIENT_ORIGIN
         sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_KEY_PREFIX
+        value: submissions
+      - key: R2_SIGNED_URL_TTL_SECONDS
+        value: 3600
+      - key: SUBMISSION_UPLOAD_LIMIT_MB
+        value: 2048
       - key: SEED_FIRST_NAMES
         sync: false
       - key: SEED_DEFAULT_PASSWORD

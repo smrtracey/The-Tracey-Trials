@@ -4,7 +4,11 @@ const submissionMediaSchema = new mongoose.Schema(
   {
     url: {
       type: String,
-      required: true,
+      default: '',
+    },
+    storageKey: {
+      type: String,
+      default: '',
     },
     type: {
       type: String,
@@ -23,6 +27,7 @@ function normalizeMediaItems(submission) {
   if (Array.isArray(submission.mediaItems) && submission.mediaItems.length > 0) {
     return submission.mediaItems.map((item) => ({
       url: item.url,
+      storageKey: item.storageKey ?? '',
       type: item.type,
       originalName: item.originalName ?? '',
     }))
@@ -92,8 +97,18 @@ const submissionSchema = new mongoose.Schema(
   },
 )
 
-submissionSchema.statics.toClient = function toClient(submission) {
-  const mediaItems = normalizeMediaItems(submission)
+submissionSchema.statics.toClient = async function toClient(
+  submission,
+  { resolveMediaUrl } = {},
+) {
+  const storedMediaItems = normalizeMediaItems(submission)
+  const mediaItems = await Promise.all(
+    storedMediaItems.map(async (item) => ({
+      url: resolveMediaUrl ? await resolveMediaUrl(item) : item.url,
+      type: item.type,
+      originalName: item.originalName,
+    })),
+  )
 
   return {
     id: submission._id.toString(),

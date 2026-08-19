@@ -10,6 +10,7 @@ import FilterBar from '../components/judge/FilterBar';
 import { useNavigate } from 'react-router-dom';
 import '../custom-checkbox.css';
 import { useAuth } from '../hooks/useAuth';
+import { getMediaUrl } from '../lib/media';
 
 import {
   createJudgeTask,
@@ -20,8 +21,6 @@ import {
   markSubmissionDone as apiMarkSubmissionDone,
   updateJudgeLeaderboardPoints,
 } from '../lib/api';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
 function normalizeChoiceForScoring(choice) {
   return choice === 'no vote' ? 'cooperate' : choice;
@@ -171,13 +170,6 @@ function JudgeDashboardPage() {
       return [{ type: submission.mediaType, url: submission.mediaUrl, originalName: submission.originalName }];
     }
     return [];
-  }
-
-  function getMediaUrl(url) {
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
-    return `${API_BASE_URL}/${url}`;
   }
 
   const searchValue = searchFilter.trim().toLowerCase();

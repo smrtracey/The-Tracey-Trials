@@ -8,6 +8,7 @@ import { Task } from '../models/Task.js'
 import { User } from '../models/User.js'
 import { NotificationSchemaModel } from '../models/NotificationSchema.js'
 import { sendStoredNotificationToUsernames } from '../services/notificationService.js'
+import { resolveSubmissionMediaUrl } from '../services/r2Service.js'
 
 const judgeRoutes = Router()
 
@@ -163,9 +164,14 @@ judgeRoutes.get('/submissions', async (_request, response, next) => {
       .sort({ createdAt: -1 })
       .populate('user')
 
-    return response.json({
-      submissions: submissions.map((submission) => Submission.toClient(submission)),
-    })
+      const serializedSubmissions = await Promise.all(
+        submissions.map((submission) => Submission.toClient(
+          submission,
+          { resolveMediaUrl: resolveSubmissionMediaUrl },
+        )),
+      )
+
+      return response.json({ submissions: serializedSubmissions })
   } catch (error) {
     return next(error)
   }
@@ -187,7 +193,12 @@ judgeRoutes.patch('/submissions/:id/done', async (request, response, next) => {
     if (!submission) {
       return response.status(404).json({ message: 'Submission not found.' })
     }
-    return response.json({ submission: Submission.toClient(submission) })
+    return response.json({
+      submission: await Submission.toClient(
+        submission,
+        { resolveMediaUrl: resolveSubmissionMediaUrl },
+      ),
+    })
   } catch (error) {
     return next(error)
   }

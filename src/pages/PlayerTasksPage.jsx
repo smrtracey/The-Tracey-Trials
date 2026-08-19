@@ -569,7 +569,7 @@ function PlayerTasksPage() {
 
               {renderTaskSection({
                 title: 'Additional tasks',
-                description: 'Tasks added by the judge will appear here.',
+                description: '',
                 taskList: additionalTasks,
                 isExpanded: isAdditionalTasksExpanded,
                 onToggle: () => setIsAdditionalTasksExpanded((current) => !current),

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import DownloadRenameModal from '../DownloadRenameModal';
+import DownloadIcon from '../DownloadIcon';
+import { downloadFile } from '../../lib/download';
 
 function formatSubmissionDate(value) {
   if (!value) {
@@ -31,7 +32,7 @@ export default function SubmissionSidePanel({
   token,
   setSubmissions
 }) {
-  const [downloadState, setDownloadState] = useState({ isOpen: false, url: '', fileName: '' });
+  const [downloadState, setDownloadState] = useState({ downloadKey: null, error: '' });
 
   if (!activeSubmissionId) return null;
 
@@ -44,6 +45,20 @@ export default function SubmissionSidePanel({
   const taskLabel = submission.taskLabel || getTaskLabel(submission.taskNumber);
   const hasMedia = (Array.isArray(submission.mediaItems) && submission.mediaItems.length > 0) || submission.mediaType ? 'Yes' : 'No';
   const submittedAt = formatSubmissionDate(submission.createdAt);
+
+  async function handleDownload(downloadUrl, downloadKey) {
+    setDownloadState({ downloadKey, error: '' });
+
+    try {
+      await downloadFile(downloadUrl, '', token);
+      setDownloadState({ downloadKey: null, error: '' });
+    } catch (downloadError) {
+      setDownloadState({
+        downloadKey: null,
+        error: downloadError?.message || 'Failed to download file.',
+      });
+    }
+  }
 
   return (
     <div
@@ -94,21 +109,35 @@ export default function SubmissionSidePanel({
             <span>Text: {submission.textBody || '-'}</span>
             <span>Media: {hasMedia}</span>
             {submission.mediaItems && submission.mediaItems.length > 0 && (
-              <div
-                className="judge-media-grid judge-media-grid--panel"
-                style={{
-                  marginTop: 16,
-                  width: '100%',
-                  display: 'flex',
-                  gap: 16,
-                  flexWrap: 'wrap',
-                  justifyContent: 'center',
-                }}
-              >
+              <>
+                <button
+                  type="button"
+                  className="button download-all-button judge-download-all-button"
+                  onClick={() => handleDownload(
+                    getMediaUrl(`/api/judge/submissions/${encodeURIComponent(submission.id)}/media/download-all`),
+                    'all',
+                  )}
+                  disabled={downloadState.downloadKey !== null}
+                >
+                  <DownloadIcon className="download-all-button__icon" />
+                  <span>{downloadState.downloadKey === 'all' ? 'Preparing ZIP…' : 'Download all'}</span>
+                </button>
+                <div
+                  className="judge-media-grid judge-media-grid--panel"
+                  style={{
+                    marginTop: 16,
+                    width: '100%',
+                    display: 'flex',
+                    gap: 16,
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                  }}
+                >
                 {submission.mediaItems.map((mediaItem, mediaIndex) => {
                   const mediaUrl = getMediaUrl(mediaItem.url);
                   const downloadUrl = getMediaUrl(`/api/judge/submissions/${encodeURIComponent(submission.id)}/media/${mediaIndex}/download`);
                   const fileName = mediaItem.originalName || `submission-media-${mediaIndex + 1}`;
+                  const downloadKey = `media-${mediaIndex}`;
                   return mediaItem.type === 'video' ? (
                     <div
                       key={`${submission.id}-panel-video-link-${mediaIndex}`}
@@ -132,11 +161,12 @@ export default function SubmissionSidePanel({
                       </a>
                       <button
                         type="button"
-                        onClick={() => setDownloadState({ isOpen: true, url: downloadUrl, fileName })}
+                        onClick={() => handleDownload(downloadUrl, downloadKey)}
                         className="button-ghost"
                         style={{ marginTop: 4, fontSize: '0.95em', padding: '2px 10px' }}
+                        disabled={downloadState.downloadKey !== null}
                       >
-                        Download
+                        {downloadState.downloadKey === downloadKey ? 'Downloading…' : 'Download'}
                       </button>
                     </div>
                   ) : (
@@ -162,17 +192,20 @@ export default function SubmissionSidePanel({
                       </a>
                       <button
                         type="button"
-                        onClick={() => setDownloadState({ isOpen: true, url: downloadUrl, fileName })}
+                        onClick={() => handleDownload(downloadUrl, downloadKey)}
                         className="button-ghost"
                         style={{ marginTop: 4, fontSize: '0.95em', padding: '2px 10px' }}
+                        disabled={downloadState.downloadKey !== null}
                       >
-                        Download
+                        {downloadState.downloadKey === downloadKey ? 'Downloading…' : 'Download'}
                       </button>
                     </div>
                   );
                 })}
-              </div>
+                </div>
+              </>
             )}
+            {downloadState.error ? <div className="error-banner">{downloadState.error}</div> : null}
             {/* Mark as Done button */}
             {!submission.done && (
               <button
@@ -215,14 +248,6 @@ export default function SubmissionSidePanel({
           </article>
         </div>
       </aside>
-      {downloadState.isOpen ? (
-        <DownloadRenameModal
-          url={downloadState.url}
-          fileName={downloadState.fileName}
-          token={token}
-          onClose={() => setDownloadState({ isOpen: false, url: '', fileName: '' })}
-        />
-      ) : null}
     </div>
   );
 }

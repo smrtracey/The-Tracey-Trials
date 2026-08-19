@@ -35,7 +35,23 @@ export function buildDownloadFileName(fileName, requestedName) {
   return trimmedName
 }
 
-export async function downloadFile(url, fileName, token = '') {
+function getResponseFileName(response) {
+  const contentDisposition = response.headers.get('content-disposition') ?? ''
+  const encodedFileNameMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)
+
+  if (encodedFileNameMatch) {
+    try {
+      return sanitizeFileName(decodeURIComponent(encodedFileNameMatch[1]))
+    } catch {
+      // Fall through to the basic filename value.
+    }
+  }
+
+  const fileNameMatch = contentDisposition.match(/filename="([^"]+)"|filename=([^;]+)/i)
+  return sanitizeFileName(fileNameMatch?.[1] ?? fileNameMatch?.[2] ?? '')
+}
+
+export async function downloadFile(url, fileName = '', token = '') {
   const response = await fetch(url, {
     headers: token
       ? { Authorization: `Bearer ${token}` }
@@ -51,9 +67,10 @@ export async function downloadFile(url, fileName, token = '') {
   const blob = await response.blob()
   const objectUrl = window.URL.createObjectURL(blob)
   const anchor = document.createElement('a')
+  const responseFileName = getResponseFileName(response)
 
   anchor.href = objectUrl
-  anchor.download = fileName || 'download'
+  anchor.download = fileName || responseFileName || 'download'
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()

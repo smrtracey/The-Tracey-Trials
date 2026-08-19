@@ -21,6 +21,7 @@ export function createApp() {
     cors({
       origin: env.clientOrigin,
       credentials: true,
+      exposedHeaders: ['Content-Disposition'],
     }),
   )
   app.use(express.json())

@@ -18,6 +18,7 @@ import {
   fetchJudgeLongGameRounds,
   fetchJudgeSubmissions,
   fetchJudgeTasks,
+  markAllSubmissionsFinished,
   markSubmissionDone as apiMarkSubmissionDone,
   updateJudgeLeaderboardPoints,
 } from '../lib/api';
@@ -71,6 +72,8 @@ function JudgeDashboardPage() {
   const [taskCreateError, setTaskCreateError] = useState('');
   const [taskCreateSuccess, setTaskCreateSuccess] = useState('');
   const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [isMarkingAllSubmissionsFinished, setIsMarkingAllSubmissionsFinished] = useState(false);
+  const [markAllSubmissionsError, setMarkAllSubmissionsError] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -301,6 +304,36 @@ function JudgeDashboardPage() {
 
   async function markSubmissionDone(token, submissionId, done) {
     await apiMarkSubmissionDone(token, submissionId, done);
+  }
+
+  async function handleMarkAllSubmissionsFinished() {
+    const newSubmissionCount = submissions.filter((submission) => !submission.done).length;
+
+    if (newSubmissionCount === 0) {
+      return;
+    }
+
+    const shouldContinue = window.confirm(
+      `Mark all ${newSubmissionCount} new submission${newSubmissionCount === 1 ? '' : 's'} as finished?`,
+    );
+
+    if (!shouldContinue) {
+      return;
+    }
+
+    setMarkAllSubmissionsError('');
+    setIsMarkingAllSubmissionsFinished(true);
+
+    try {
+      await markAllSubmissionsFinished(token);
+      setSubmissions((current) =>
+        current.map((submission) => (submission.done ? submission : { ...submission, done: true })),
+      );
+    } catch (markAllError) {
+      setMarkAllSubmissionsError(markAllError.message);
+    } finally {
+      setIsMarkingAllSubmissionsFinished(false);
+    }
   }
 
   async function handleLeaderboardPointsSave(username, judgeAdjustmentPoints) {
@@ -564,8 +597,12 @@ function JudgeDashboardPage() {
         <div className="judge-dashboard-grid">
           <SubmissionsTable
             submissionRows={submissionRows}
+            newSubmissionCount={submissions.filter((submission) => !submission.done).length}
             isLoading={isLoading}
+            isMarkingAllFinished={isMarkingAllSubmissionsFinished}
+            markAllError={markAllSubmissionsError}
             navigate={navigate}
+            onMarkAllFinished={handleMarkAllSubmissionsFinished}
             setActiveSubmissionId={setActiveSubmissionId}
           />
           <LongGameOverview

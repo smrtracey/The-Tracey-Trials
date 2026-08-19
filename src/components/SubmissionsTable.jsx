@@ -10,8 +10,12 @@ function truncateTextPreview(value, maxLength = 15) {
 
 export default function SubmissionsTable({
   submissionRows,
+  newSubmissionCount,
   isLoading,
+  isMarkingAllFinished,
+  markAllError,
   navigate,
+  onMarkAllFinished,
   setActiveSubmissionId
 }) {
   const [showDoneSubmissions, setShowDoneSubmissions] = useState(false);
@@ -23,26 +27,32 @@ export default function SubmissionsTable({
 
   return (
     <article className="task-meta-card judge-dashboard-card submissions-card">
-      <div className="judge-section-header" style={{ position: 'relative', minHeight: 40 }}>
+      <div className="judge-section-header submissions-card-header">
         <h2 style={{ margin: 0 }}>
           {showDoneSubmissions ? 'Finished Submissions' : 'New Submissions'}{' '}
           <span style={{ color: 'var(--text-soft)', fontWeight: 500 }}>({filteredRows.length})</span>
         </h2>
-        <button
-          className="button-ghost"
-          style={{
-            fontSize: '0.98em',
-            padding: '4px 16px',
-            borderRadius: 8,
-            position: 'absolute',
-            top: 0,
-            right: 0,
-          }}
-          onClick={() => setShowDoneSubmissions((v) => !v)}
-        >
-          {showDoneSubmissions ? 'Show New' : 'Show Finished'}
-        </button>
+        <div className="submissions-card-actions">
+          {!showDoneSubmissions ? (
+            <button
+              className="button-secondary submissions-card-action"
+              type="button"
+              onClick={onMarkAllFinished}
+              disabled={isLoading || isMarkingAllFinished || newSubmissionCount === 0}
+            >
+              {isMarkingAllFinished ? 'Marking…' : 'Mark all as finished'}
+            </button>
+          ) : null}
+          <button
+            className="button-ghost submissions-card-action"
+            type="button"
+            onClick={() => setShowDoneSubmissions((v) => !v)}
+          >
+            {showDoneSubmissions ? 'Show New' : 'Show Finished'}
+          </button>
+        </div>
       </div>
+      {markAllError ? <div className="error-banner">{markAllError}</div> : null}
       {isLoading ? <p className="muted">Loading submissions...</p> : null}
       {!isLoading ? (
         <div className="judge-table-wrap">

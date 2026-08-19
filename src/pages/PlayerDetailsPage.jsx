@@ -3,13 +3,15 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchJudgeSubmissions, fetchJudgeLongGameRounds, fetchJudgeLeaderboard, fetchJudgeTasks } from '../lib/api';
-import DownloadRenameModal from '../components/DownloadRenameModal';
+import DownloadIcon from '../components/DownloadIcon';
+import { downloadFile } from '../lib/download';
 import { getMediaUrl } from '../lib/media';
 import '../App.css';
 
 export default function PlayerDetailsPage() {
   const [mediaModal, setMediaModal] = useState({ open: false, url: '', downloadUrl: '', type: '', name: '' });
-  const [downloadState, setDownloadState] = useState({ isOpen: false, url: '', fileName: '' });
+  const [downloadState, setDownloadState] = useState({ isDownloading: false, error: '' });
+  const [downloadAllState, setDownloadAllState] = useState({ isDownloading: false, error: '' });
   const [expandedSubmissionId, setExpandedSubmissionId] = useState(null);
   const { username } = useParams();
   const navigate = useNavigate();
@@ -66,6 +68,20 @@ export default function PlayerDetailsPage() {
   const completedTaskNumbers = player?.completedTaskNumbers || [];
   const completedTasks = tasks.filter(t => completedTaskNumbers.includes(t.taskNumber));
 
+  async function handleMediaDownload() {
+    setDownloadState({ isDownloading: true, error: '' });
+
+    try {
+      await downloadFile(mediaModal.downloadUrl, '', token);
+      setDownloadState({ isDownloading: false, error: '' });
+    } catch (downloadError) {
+      setDownloadState({
+        isDownloading: false,
+        error: downloadError?.message || 'Failed to download file.',
+      });
+    }
+  }
+
   function getSubmissionMediaItems(submission) {
     if (!submission) return [];
     if (Array.isArray(submission.mediaItems)) return submission.mediaItems;
@@ -74,6 +90,28 @@ export default function PlayerDetailsPage() {
     }
 
     return [];
+  }
+
+  const totalMediaFileCount = submissions.reduce(
+    (count, submission) => count + getSubmissionMediaItems(submission).length,
+    0,
+  );
+
+  async function handleDownloadAllSubmissions() {
+    setDownloadAllState({ isDownloading: true, error: '' });
+
+    try {
+      const downloadUrl = getMediaUrl(
+        `/api/judge/players/${encodeURIComponent(username)}/submissions/download-all`,
+      );
+      await downloadFile(downloadUrl, '', token);
+      setDownloadAllState({ isDownloading: false, error: '' });
+    } catch (downloadError) {
+      setDownloadAllState({
+        isDownloading: false,
+        error: downloadError?.message || 'Failed to download submissions.',
+      });
+    }
   }
 
   // Flatten long game history for this player
@@ -124,9 +162,21 @@ export default function PlayerDetailsPage() {
           <div className="player-details-grid">
             {/* Submissions Card */}
             <div className="task-meta-card">
-              <h2 style={{ marginTop: 0 }}>
-                Submissions <span style={{ color: '#888', fontWeight: 500 }}>({submissions.length})</span>
-              </h2>
+              <div className="panel-header player-submissions-header">
+                <h2 style={{ marginTop: 0 }}>
+                  Submissions <span style={{ color: '#888', fontWeight: 500 }}>({submissions.length})</span>
+                </h2>
+                <button
+                  type="button"
+                  className="button download-all-button"
+                  onClick={handleDownloadAllSubmissions}
+                  disabled={downloadAllState.isDownloading || totalMediaFileCount === 0}
+                >
+                  <DownloadIcon className="download-all-button__icon" />
+                  <span>{downloadAllState.isDownloading ? 'Preparing ZIP…' : 'Download all'}</span>
+                </button>
+              </div>
+              {downloadAllState.error ? <div className="error-banner">{downloadAllState.error}</div> : null}
               {submissions.length === 0 ? (
                 <p className="muted">No submissions yet.</p>
               ) : (
@@ -175,7 +225,10 @@ export default function PlayerDetailsPage() {
 
                                       return (
                                     <div key={idx} style={{ cursor: 'pointer', display: 'inline-block' }}
-                                      onClick={() => setMediaModal({ open: true, url: mediaUrl, downloadUrl, type: m.type, name: m.originalName })}>
+                                      onClick={() => {
+                                        setDownloadState({ isDownloading: false, error: '' });
+                                        setMediaModal({ open: true, url: mediaUrl, downloadUrl, type: m.type, name: m.originalName });
+                                      }}>
                                       {m.type === 'image' ? (
                                         <img src={mediaUrl} alt={m.originalName} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }} />
                                       ) : (
@@ -217,23 +270,17 @@ export default function PlayerDetailsPage() {
                             )}
                             <button
                               type="button"
-                              onClick={() => setDownloadState({ isOpen: true, url: mediaModal.downloadUrl, fileName: mediaModal.name })}
+                              onClick={handleMediaDownload}
                               className="button"
                               style={{ marginTop: 8, minWidth: 120, textAlign: 'center' }}
+                              disabled={downloadState.isDownloading}
                             >
-                              Download
+                              {downloadState.isDownloading ? 'Downloading…' : 'Download'}
                             </button>
+                            {downloadState.error ? <div className="error-banner">{downloadState.error}</div> : null}
                           </div>
                         </div>
                       )}
-                      {downloadState.isOpen ? (
-                        <DownloadRenameModal
-                          url={downloadState.url}
-                          fileName={downloadState.fileName}
-                          token={token}
-                          onClose={() => setDownloadState({ isOpen: false, url: '', fileName: '' })}
-                        />
-                      ) : null}
                 </ul>
               )}
             </div>

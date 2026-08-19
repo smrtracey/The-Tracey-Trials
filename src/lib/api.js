@@ -9,6 +9,15 @@ export async function markSubmissionDone(token, submissionId, done) {
     body: JSON.stringify({ done }),
   })
 }
+
+export async function markAllSubmissionsFinished(token) {
+  return request('/api/judge/submissions/finish-all', {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
 async function request(path, options = {}) {

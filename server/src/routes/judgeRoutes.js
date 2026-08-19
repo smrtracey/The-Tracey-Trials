@@ -1,3 +1,4 @@
+import { ZipArchive } from 'archiver'
 import { Router } from 'express'
 import { pipeline } from 'stream/promises'
 import { longGameSchedule } from '../data/longGameSchedule.js'
@@ -10,8 +11,80 @@ import { User } from '../models/User.js'
 import { NotificationSchemaModel } from '../models/NotificationSchema.js'
 import { sendStoredNotificationToUsernames } from '../services/notificationService.js'
 import { getSubmissionMediaObject, resolveSubmissionMediaUrl } from '../services/r2Service.js'
+import {
+  buildSubmissionArchiveFileName,
+  buildSubmissionDownloadFileName,
+  getSubmissionMediaSequenceNumber,
+} from '../services/submissionDownloadService.js'
 
 const judgeRoutes = Router()
+
+async function getPlayerArchiveEntries(user, onlySubmissionId = '') {
+  const submissions = await Submission.find({ user: user._id })
+    .select('_id taskNumber mediaItems mediaUrl mediaType originalName createdAt')
+    .sort({ createdAt: 1, _id: 1 })
+    .lean()
+  const taskNumbers = [...new Set(submissions.map((submission) => submission.taskNumber))]
+  const tasks = await Task.find({ taskNumber: { $in: taskNumbers } })
+    .select('taskNumber title')
+    .lean()
+  const taskNameByNumber = new Map(tasks.map((task) => [task.taskNumber, task.title]))
+  const sequenceByTaskNumber = new Map()
+  const entries = []
+
+  for (const submission of submissions) {
+    const mediaItems = Submission.getStoredMediaItems(submission)
+    let sequenceNumber = sequenceByTaskNumber.get(submission.taskNumber) ?? 0
+
+    for (const mediaItem of mediaItems) {
+      sequenceNumber += 1
+
+      if (!onlySubmissionId || String(submission._id) === String(onlySubmissionId)) {
+        entries.push({
+          mediaItem,
+          playerName: user.displayName,
+          taskName: taskNameByNumber.get(submission.taskNumber) ?? `Task ${submission.taskNumber}`,
+          sequenceNumber,
+        })
+      }
+    }
+
+    sequenceByTaskNumber.set(submission.taskNumber, sequenceNumber)
+  }
+
+  return entries
+}
+
+async function streamSubmissionArchive(response, entries, archiveFileName) {
+  response.attachment(archiveFileName)
+  response.type('application/zip')
+
+  const archive = new ZipArchive({ zlib: { level: 6 } })
+  archive.on('warning', (warning) => {
+    if (warning.code !== 'ENOENT') {
+      response.destroy(warning)
+    }
+  })
+  archive.on('error', (error) => {
+    response.destroy(error)
+  })
+  archive.pipe(response)
+
+  for (const entry of entries) {
+    const mediaObject = await getSubmissionMediaObject(entry.mediaItem)
+    const fileName = buildSubmissionDownloadFileName({
+      playerName: entry.playerName,
+      taskName: entry.taskName,
+      sequenceNumber: entry.sequenceNumber,
+      originalName: entry.mediaItem.originalName || entry.mediaItem.url || entry.mediaItem.storageKey,
+      contentType: mediaObject.ContentType,
+    })
+
+    archive.append(mediaObject.Body, { name: fileName })
+  }
+
+  await archive.finalize()
+}
 
 function formatDeadlineLabel(deadlineAt) {
   return new Intl.DateTimeFormat('en-IE', {
@@ -178,6 +251,64 @@ judgeRoutes.get('/submissions', async (_request, response, next) => {
   }
 })
 
+judgeRoutes.get('/submissions/:id/media/download-all', async (request, response, next) => {
+  try {
+    const submission = await Submission.findById(request.params.id).populate('user')
+
+    if (!submission) {
+      return response.status(404).json({ message: 'Submission not found.' })
+    }
+
+    const entries = await getPlayerArchiveEntries(submission.user, submission._id)
+
+    if (entries.length === 0) {
+      return response.status(404).json({ message: 'This submission does not contain any media files.' })
+    }
+
+    const task = await Task.findOne({ taskNumber: submission.taskNumber }).select('title').lean()
+    const archiveFileName = buildSubmissionArchiveFileName(
+      submission.user.displayName,
+      `${task?.title ?? `Task ${submission.taskNumber}`} Submission`,
+    )
+
+    await streamSubmissionArchive(response, entries, archiveFileName)
+  } catch (error) {
+    if (response.headersSent) {
+      response.destroy(error)
+      return undefined
+    }
+
+    return next(error)
+  }
+})
+
+judgeRoutes.get('/players/:username/submissions/download-all', async (request, response, next) => {
+  try {
+    const username = request.params.username.trim().toLowerCase()
+    const user = await User.findOne({ username })
+
+    if (!user) {
+      return response.status(404).json({ message: 'Player not found.' })
+    }
+
+    const entries = await getPlayerArchiveEntries(user)
+
+    if (entries.length === 0) {
+      return response.status(404).json({ message: 'This player does not have any submission media to download.' })
+    }
+
+    const archiveFileName = buildSubmissionArchiveFileName(user.displayName, 'All Submissions')
+    await streamSubmissionArchive(response, entries, archiveFileName)
+  } catch (error) {
+    if (response.headersSent) {
+      response.destroy(error)
+      return undefined
+    }
+
+    return next(error)
+  }
+})
+
 judgeRoutes.get('/submissions/:id/media/:mediaIndex/download', async (request, response, next) => {
   try {
     const mediaIndex = Number(request.params.mediaIndex)
@@ -186,7 +317,7 @@ judgeRoutes.get('/submissions/:id/media/:mediaIndex/download', async (request, r
       return response.status(400).json({ message: 'Media index must be a non-negative whole number.' })
     }
 
-    const submission = await Submission.findById(request.params.id)
+    const submission = await Submission.findById(request.params.id).populate('user')
 
     if (!submission) {
       return response.status(404).json({ message: 'Submission not found.' })
@@ -199,8 +330,30 @@ judgeRoutes.get('/submissions/:id/media/:mediaIndex/download', async (request, r
     }
 
     const mediaObject = await getSubmissionMediaObject(mediaItem)
+    const [task, relatedSubmissions] = await Promise.all([
+      Task.findOne({ taskNumber: submission.taskNumber }).select('title').lean(),
+      Submission.find({
+        user: submission.user._id,
+        taskNumber: submission.taskNumber,
+      })
+        .select('_id mediaItems mediaUrl mediaType createdAt')
+        .sort({ createdAt: 1, _id: 1 })
+        .lean(),
+    ])
+    const sequenceNumber = getSubmissionMediaSequenceNumber(
+      relatedSubmissions,
+      submission._id,
+      mediaIndex,
+    )
+    const downloadFileName = buildSubmissionDownloadFileName({
+      playerName: submission.user.displayName,
+      taskName: task?.title ?? `Task ${submission.taskNumber}`,
+      sequenceNumber,
+      originalName: mediaItem.originalName || mediaItem.url || mediaItem.storageKey,
+      contentType: mediaObject.ContentType,
+    })
 
-    response.attachment(mediaItem.originalName || `submission-media-${mediaIndex + 1}`)
+    response.attachment(downloadFileName)
     response.type(mediaObject.ContentType || 'application/octet-stream')
 
     if (Number.isFinite(mediaObject.ContentLength)) {
@@ -208,6 +361,20 @@ judgeRoutes.get('/submissions/:id/media/:mediaIndex/download', async (request, r
     }
 
     await pipeline(mediaObject.Body, response)
+  } catch (error) {
+    return next(error)
+  }
+})
+
+// PATCH /api/judge/submissions/finish-all - mark every new submission as finished
+judgeRoutes.patch('/submissions/finish-all', async (_request, response, next) => {
+  try {
+    const result = await Submission.updateMany(
+      { done: { $ne: true } },
+      { $set: { done: true } },
+    )
+
+    return response.json({ updatedCount: result.modifiedCount })
   } catch (error) {
     return next(error)
   }

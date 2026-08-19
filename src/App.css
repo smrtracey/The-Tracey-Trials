@@ -679,24 +679,6 @@
   gap: 18px;
 }
 
-.download-rename-modal__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.download-rename-modal__header h2 {
-  margin: 0;
-}
-
-.download-rename-modal__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
 .field select {
   appearance: none;
   background-image:
@@ -1980,6 +1962,64 @@
 .long-game-overview-card,
 .leaderboard-card {
   height: 575px;
+}
+
+.submissions-card-header {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  min-height: 40px;
+}
+
+.submissions-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.submissions-card-action {
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.download-all-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  box-shadow: 0 8px 18px var(--accent-ring);
+}
+
+.download-all-button:hover:not(:disabled) {
+  box-shadow: 0 10px 22px var(--accent-ring);
+}
+
+.download-all-button__icon {
+  flex: 0 0 auto;
+  width: 19px;
+  height: 19px;
+}
+
+.judge-download-all-button {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.player-submissions-header {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.player-submissions-header .download-all-button {
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .funds-panel-card {

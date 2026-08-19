@@ -8,7 +8,7 @@ import { getMediaUrl } from '../lib/media';
 import '../App.css';
 
 export default function PlayerDetailsPage() {
-  const [mediaModal, setMediaModal] = useState({ open: false, url: '', type: '', name: '' });
+  const [mediaModal, setMediaModal] = useState({ open: false, url: '', downloadUrl: '', type: '', name: '' });
   const [downloadState, setDownloadState] = useState({ isOpen: false, url: '', fileName: '' });
   const [expandedSubmissionId, setExpandedSubmissionId] = useState(null);
   const { username } = useParams();
@@ -171,10 +171,11 @@ export default function PlayerDetailsPage() {
                                   {mediaItems.map((m, idx) => (
                                     (() => {
                                       const mediaUrl = getMediaUrl(m.url);
+                                      const downloadUrl = getMediaUrl(`/api/judge/submissions/${encodeURIComponent(s.id)}/media/${idx}/download`);
 
                                       return (
                                     <div key={idx} style={{ cursor: 'pointer', display: 'inline-block' }}
-                                      onClick={() => setMediaModal({ open: true, url: mediaUrl, type: m.type, name: m.originalName })}>
+                                      onClick={() => setMediaModal({ open: true, url: mediaUrl, downloadUrl, type: m.type, name: m.originalName })}>
                                       {m.type === 'image' ? (
                                         <img src={mediaUrl} alt={m.originalName} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }} />
                                       ) : (
@@ -204,10 +205,10 @@ export default function PlayerDetailsPage() {
                           zIndex: 1000,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}
-                          onClick={() => setMediaModal({ open: false, url: '', type: '', name: '' })}
+                          onClick={() => setMediaModal({ open: false, url: '', downloadUrl: '', type: '', name: '' })}
                         >
                           <div style={{ background: '#fff', borderRadius: 12, padding: 32, minWidth: 420, maxWidth: '98vw', maxHeight: '96vh', boxShadow: '0 4px 32px rgba(0,0,0,0.22)', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
-                            <button className="button-ghost" style={{ position: 'absolute', top: 18, right: 18, fontSize: 18 }} onClick={() => setMediaModal({ open: false, url: '', type: '', name: '' })}>Close</button>
+                            <button className="button-ghost" style={{ position: 'absolute', top: 18, right: 18, fontSize: 18 }} onClick={() => setMediaModal({ open: false, url: '', downloadUrl: '', type: '', name: '' })}>Close</button>
                             <div style={{ textAlign: 'center', marginBottom: 18, fontWeight: 600, fontSize: 18 }}>{mediaModal.name}</div>
                             {mediaModal.type === 'image' ? (
                               <img src={mediaModal.url} alt={mediaModal.name} style={{ maxWidth: '90vw', maxHeight: '75vh', borderRadius: 10, marginBottom: 18 }} />
@@ -216,7 +217,7 @@ export default function PlayerDetailsPage() {
                             )}
                             <button
                               type="button"
-                              onClick={() => setDownloadState({ isOpen: true, url: mediaModal.url, fileName: mediaModal.name })}
+                              onClick={() => setDownloadState({ isOpen: true, url: mediaModal.downloadUrl, fileName: mediaModal.name })}
                               className="button"
                               style={{ marginTop: 8, minWidth: 120, textAlign: 'center' }}
                             >
@@ -225,12 +226,14 @@ export default function PlayerDetailsPage() {
                           </div>
                         </div>
                       )}
-                      <DownloadRenameModal
-                        isOpen={downloadState.isOpen}
-                        url={downloadState.url}
-                        fileName={downloadState.fileName}
-                        onClose={() => setDownloadState({ isOpen: false, url: '', fileName: '' })}
-                      />
+                      {downloadState.isOpen ? (
+                        <DownloadRenameModal
+                          url={downloadState.url}
+                          fileName={downloadState.fileName}
+                          token={token}
+                          onClose={() => setDownloadState({ isOpen: false, url: '', fileName: '' })}
+                        />
+                      ) : null}
                 </ul>
               )}
             </div>

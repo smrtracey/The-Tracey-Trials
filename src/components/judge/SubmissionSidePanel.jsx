@@ -26,12 +26,13 @@ export default function SubmissionSidePanel({
   submissionRows,
   submissions,
   getTaskLabel,
-  getSubmissionMediaItems,
   getMediaUrl,
   markSubmissionDone,
   token,
   setSubmissions
 }) {
+  const [downloadState, setDownloadState] = useState({ isOpen: false, url: '', fileName: '' });
+
   if (!activeSubmissionId) return null;
 
   // Try to find the submission in the current table, else fallback to the last known submission in all submissions
@@ -43,7 +44,6 @@ export default function SubmissionSidePanel({
   const taskLabel = submission.taskLabel || getTaskLabel(submission.taskNumber);
   const hasMedia = (Array.isArray(submission.mediaItems) && submission.mediaItems.length > 0) || submission.mediaType ? 'Yes' : 'No';
   const submittedAt = formatSubmissionDate(submission.createdAt);
-  const [downloadState, setDownloadState] = useState({ isOpen: false, url: '', fileName: '' });
 
   return (
     <div
@@ -107,6 +107,7 @@ export default function SubmissionSidePanel({
               >
                 {submission.mediaItems.map((mediaItem, mediaIndex) => {
                   const mediaUrl = getMediaUrl(mediaItem.url);
+                  const downloadUrl = getMediaUrl(`/api/judge/submissions/${encodeURIComponent(submission.id)}/media/${mediaIndex}/download`);
                   const fileName = mediaItem.originalName || `submission-media-${mediaIndex + 1}`;
                   return mediaItem.type === 'video' ? (
                     <div
@@ -131,7 +132,7 @@ export default function SubmissionSidePanel({
                       </a>
                       <button
                         type="button"
-                        onClick={() => setDownloadState({ isOpen: true, url: mediaUrl, fileName })}
+                        onClick={() => setDownloadState({ isOpen: true, url: downloadUrl, fileName })}
                         className="button-ghost"
                         style={{ marginTop: 4, fontSize: '0.95em', padding: '2px 10px' }}
                       >
@@ -161,7 +162,7 @@ export default function SubmissionSidePanel({
                       </a>
                       <button
                         type="button"
-                        onClick={() => setDownloadState({ isOpen: true, url: mediaUrl, fileName })}
+                        onClick={() => setDownloadState({ isOpen: true, url: downloadUrl, fileName })}
                         className="button-ghost"
                         style={{ marginTop: 4, fontSize: '0.95em', padding: '2px 10px' }}
                       >
@@ -214,12 +215,14 @@ export default function SubmissionSidePanel({
           </article>
         </div>
       </aside>
-      <DownloadRenameModal
-        isOpen={downloadState.isOpen}
-        url={downloadState.url}
-        fileName={downloadState.fileName}
-        onClose={() => setDownloadState({ isOpen: false, url: '', fileName: '' })}
-      />
+      {downloadState.isOpen ? (
+        <DownloadRenameModal
+          url={downloadState.url}
+          fileName={downloadState.fileName}
+          token={token}
+          onClose={() => setDownloadState({ isOpen: false, url: '', fileName: '' })}
+        />
+      ) : null}
     </div>
   );
 }

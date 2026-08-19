@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto'
 import { createReadStream } from 'fs'
+import { stat } from 'fs/promises'
 import path from 'path'
 import {
   DeleteObjectsCommand,
@@ -171,4 +172,56 @@ export async function resolveSubmissionMediaUrl(mediaItem) {
     }),
     { expiresIn },
   )
+}
+
+export async function getSubmissionMediaObject(mediaItem) {
+  if (!mediaItem?.storageKey) {
+    if (mediaItem?.url?.startsWith('/uploads/')) {
+      try {
+        const legacyFileName = path.basename(decodeURIComponent(mediaItem.url))
+        const legacyUploadDirectory = path.resolve('server/uploads')
+        const legacyFilePath = path.resolve(legacyUploadDirectory, legacyFileName)
+        const relativePath = path.relative(legacyUploadDirectory, legacyFilePath)
+
+        if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+          throw new Error('Invalid legacy media path.')
+        }
+
+        const fileStats = await stat(legacyFilePath)
+        return {
+          Body: createReadStream(legacyFilePath),
+          ContentLength: fileStats.size,
+        }
+      } catch (error) {
+        if (error?.code !== 'ENOENT') {
+          throw error
+        }
+
+        const notFoundError = new Error('The legacy media file could not be found.')
+        notFoundError.statusCode = 404
+        throw notFoundError
+      }
+    }
+
+    const error = new Error('This submission does not have an R2 storage object.')
+    error.statusCode = 404
+    throw error
+  }
+
+  try {
+    return await getR2Client().send(
+      new GetObjectCommand({
+        Bucket: env.r2BucketName,
+        Key: mediaItem.storageKey,
+      }),
+    )
+  } catch (error) {
+    if (error?.name === 'NoSuchKey' || error?.$metadata?.httpStatusCode === 404) {
+      const notFoundError = new Error('The stored media file could not be found.')
+      notFoundError.statusCode = 404
+      throw notFoundError
+    }
+
+    throw error
+  }
 }

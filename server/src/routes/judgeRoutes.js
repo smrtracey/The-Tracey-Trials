@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { pipeline } from 'stream/promises'
 import { longGameSchedule } from '../data/longGameSchedule.js'
 import { requireAuth } from '../middleware/auth.js'
 import { FundRequest } from '../models/FundRequest.js'
@@ -8,7 +9,7 @@ import { Task } from '../models/Task.js'
 import { User } from '../models/User.js'
 import { NotificationSchemaModel } from '../models/NotificationSchema.js'
 import { sendStoredNotificationToUsernames } from '../services/notificationService.js'
-import { resolveSubmissionMediaUrl } from '../services/r2Service.js'
+import { getSubmissionMediaObject, resolveSubmissionMediaUrl } from '../services/r2Service.js'
 
 const judgeRoutes = Router()
 
@@ -172,6 +173,41 @@ judgeRoutes.get('/submissions', async (_request, response, next) => {
       )
 
       return response.json({ submissions: serializedSubmissions })
+  } catch (error) {
+    return next(error)
+  }
+})
+
+judgeRoutes.get('/submissions/:id/media/:mediaIndex/download', async (request, response, next) => {
+  try {
+    const mediaIndex = Number(request.params.mediaIndex)
+
+    if (!Number.isInteger(mediaIndex) || mediaIndex < 0) {
+      return response.status(400).json({ message: 'Media index must be a non-negative whole number.' })
+    }
+
+    const submission = await Submission.findById(request.params.id)
+
+    if (!submission) {
+      return response.status(404).json({ message: 'Submission not found.' })
+    }
+
+    const mediaItem = Submission.getStoredMediaItems(submission)[mediaIndex]
+
+    if (!mediaItem) {
+      return response.status(404).json({ message: 'Submission media not found.' })
+    }
+
+    const mediaObject = await getSubmissionMediaObject(mediaItem)
+
+    response.attachment(mediaItem.originalName || `submission-media-${mediaIndex + 1}`)
+    response.type(mediaObject.ContentType || 'application/octet-stream')
+
+    if (Number.isFinite(mediaObject.ContentLength)) {
+      response.setHeader('Content-Length', String(mediaObject.ContentLength))
+    }
+
+    await pipeline(mediaObject.Body, response)
   } catch (error) {
     return next(error)
   }

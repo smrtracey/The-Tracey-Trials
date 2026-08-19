@@ -35,11 +35,17 @@ export function buildDownloadFileName(fileName, requestedName) {
   return trimmedName
 }
 
-export async function downloadFile(url, fileName) {
-  const response = await fetch(url)
+export async function downloadFile(url, fileName, token = '') {
+  const response = await fetch(url, {
+    headers: token
+      ? { Authorization: `Bearer ${token}` }
+      : undefined,
+  })
 
   if (!response.ok) {
-    throw new Error(`Download failed with status ${response.status}`)
+    const isJson = response.headers.get('content-type')?.includes('application/json')
+    const errorBody = isJson ? await response.json() : null
+    throw new Error(errorBody?.message || `Download failed with status ${response.status}`)
   }
 
   const blob = await response.blob()

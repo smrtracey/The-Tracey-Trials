@@ -1,34 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { buildDownloadFileName, downloadFile } from '../lib/download'
 
-export default function DownloadRenameModal({ isOpen, fileName, url, onClose }) {
-  const [nextFileName, setNextFileName] = useState('')
+export default function DownloadRenameModal({ fileName, url, token = '', onClose }) {
+  const [nextFileName, setNextFileName] = useState(fileName || 'download')
   const [isDownloading, setIsDownloading] = useState(false)
   const [error, setError] = useState('')
-
-  useEffect(() => {
-    if (!isOpen) {
-      setNextFileName('')
-      setIsDownloading(false)
-      setError('')
-      return
-    }
-
-    setNextFileName(fileName || 'download')
-    setIsDownloading(false)
-    setError('')
-  }, [fileName, isOpen])
-
-  if (!isOpen) {
-    return null
-  }
 
   async function handleDownload() {
     try {
       setIsDownloading(true)
       setError('')
       const resolvedFileName = buildDownloadFileName(fileName, nextFileName)
-      await downloadFile(url, resolvedFileName)
+      await downloadFile(url, resolvedFileName, token)
       onClose()
     } catch (downloadError) {
       setError(downloadError?.message || 'Failed to download file.')

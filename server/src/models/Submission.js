@@ -127,4 +127,8 @@ submissionSchema.statics.toClient = async function toClient(
   }
 }
 
+submissionSchema.statics.getStoredMediaItems = function getStoredMediaItems(submission) {
+  return normalizeMediaItems(submission)
+}
+
 export const Submission = mongoose.model('Submission', submissionSchema)

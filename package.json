@@ -14,6 +14,7 @@
     "test": "node --test server/src/models/Submission.test.js",
     "test:r2": "node server/src/scripts/testR2SubmissionFlow.js",
     "seed:users": "node server/src/scripts/seedUsers.js",
+    "seed:test-user": "node server/src/scripts/seedTestUser.js",
     "seed:tasks": "node server/src/scripts/seedTasks.js",
     "migrate:uploads-to-r2": "node server/src/scripts/migrateLocalUploadsToR2.js",
     "seed:late-stage": "node server/src/scripts/seedLateStageData.js",

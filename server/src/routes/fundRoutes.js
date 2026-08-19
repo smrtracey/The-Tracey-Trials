@@ -8,7 +8,7 @@ const fundRoutes = Router()
 
 fundRoutes.use(requireAuth)
 fundRoutes.use((request, response, next) => {
-  if (request.user.role !== 'contestant') {
+  if (!['contestant', 'tester'].includes(request.user.role)) {
     return response.status(403).json({
       message: 'Contestant access is required for this resource.',
     })

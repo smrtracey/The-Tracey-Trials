@@ -15,6 +15,10 @@ const LOGIN_BONUS_BY_RANK = new Map([
   [4, 2],
 ])
 
+function isPlayerRole(role) {
+  return role === 'contestant' || role === 'tester'
+}
+
 function bootstrapSharedSecretsInBackground(user) {
   void bootstrapSharedSecretsForUser(user).catch((bootstrapError) => {
     console.error('Failed to bootstrap Shared Secrets completion for login.', bootstrapError)
@@ -68,7 +72,7 @@ async function awardLoginBonusForUser(user) {
 }
 
 async function bootstrapSharedSecretsForUser(user) {
-  if (user.role !== 'contestant') {
+  if (!isPlayerRole(user.role)) {
     return
   }
 

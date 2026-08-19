@@ -10,6 +10,8 @@ import PlayerDetailsPage from './pages/PlayerDetailsPage'
 import PlayerTasksPage from './pages/PlayerTasksPage'
 import TaskDetailsPage from './pages/TaskDetailsPage'
 
+const PLAYER_ROLES = ['contestant', 'tester']
+
 function App() {
   return (
     <AuthProvider>
@@ -26,7 +28,7 @@ function App() {
         <Route
           path="/"
           element={
-            <ProtectedRoute requirePasswordUpdated allowedRoles={['contestant']}>
+            <ProtectedRoute requirePasswordUpdated allowedRoles={PLAYER_ROLES}>
               <HomePage />
             </ProtectedRoute>
           }
@@ -50,7 +52,7 @@ function App() {
         <Route
           path="/tasks"
           element={
-            <ProtectedRoute requirePasswordUpdated allowedRoles={['contestant']}>
+            <ProtectedRoute requirePasswordUpdated allowedRoles={PLAYER_ROLES}>
               <PlayerTasksPage />
             </ProtectedRoute>
           }
@@ -58,7 +60,7 @@ function App() {
         <Route
           path="/tasks/:taskNumber"
           element={
-            <ProtectedRoute requirePasswordUpdated allowedRoles={['contestant']}>
+            <ProtectedRoute requirePasswordUpdated allowedRoles={PLAYER_ROLES}>
               <TaskDetailsPage />
             </ProtectedRoute>
           }
